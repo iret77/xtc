@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ClimbxClient, ClimbxError, DEFAULT_BASE_URL } from "./client.js";
+import { ClimbxClient, ClimbxError, DEFAULT_BASE_URL, validateBaseUrl } from "./client.js";
 
 const SETUP_HINT =
   "CLIMBX_API_KEY is not set. Create an API key in ClimbX under Settings → API " +
@@ -23,10 +23,13 @@ export function validateImageUrls(imageUrls: string[] | undefined): string | nul
   return null;
 }
 
+// Full ISO 8601 datetime with explicit timezone — mirrors what the API examples use.
+const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+
 export function validateIsoDate(value: string | undefined, field: string): string | null {
   if (value === undefined) return null;
-  if (Number.isNaN(Date.parse(value))) {
-    return `${field} must be an ISO 8601 datetime (e.g. 2026-06-01T14:00:00Z), got: ${value}`;
+  if (!ISO_DATETIME.test(value) || Number.isNaN(Date.parse(value))) {
+    return `${field} must be an ISO 8601 datetime with timezone (e.g. 2026-06-01T14:00:00Z), got: ${value}`;
   }
   return null;
 }
@@ -90,19 +93,21 @@ export function registerTools(server: McpServer): void {
     if (client) return client;
     const apiKey = process.env.CLIMBX_API_KEY;
     if (!apiKey) return null;
-    client = new ClimbxClient({
-      apiKey,
-      baseUrl: process.env.CLIMBX_BASE_URL ?? DEFAULT_BASE_URL,
-    });
+    const baseUrl = process.env.CLIMBX_BASE_URL ?? DEFAULT_BASE_URL;
+    const baseUrlError = validateBaseUrl(baseUrl, process.env.CLIMBX_ALLOW_CUSTOM_BASE_URL === "1");
+    if (baseUrlError) {
+      throw new ClimbxError(0, "invalid_base_url", baseUrlError);
+    }
+    client = new ClimbxClient({ apiKey, baseUrl });
     return client;
   }
 
   /** Wraps a handler with the shared no-key check and error formatting. */
   function run<A>(handler: (c: ClimbxClient, args: A) => Promise<ToolResult>) {
     return async (args: A): Promise<ToolResult> => {
-      const c = getClient();
-      if (!c) return fail(SETUP_HINT);
       try {
+        const c = getClient();
+        if (!c) return fail(SETUP_HINT);
         return await handler(c, args);
       } catch (err) {
         return formatError(err);

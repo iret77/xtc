@@ -22,12 +22,15 @@ The server reads its configuration from environment variables:
 | Variable | Required | Description |
 |---|---|---|
 | `CLIMBX_API_KEY` | yes | Your ClimbX API key (`climbx_sk_…`). Never commit it anywhere. |
-| `CLIMBX_BASE_URL` | no | API base URL. Defaults to `https://climbx.so/api/v1`. |
+| `CLIMBX_BASE_URL` | no | API base URL. Defaults to `https://climbx.so/api/v1`. Must be an https `climbx.so` URL unless `CLIMBX_ALLOW_CUSTOM_BASE_URL=1` is set. |
+| `CLIMBX_ALLOW_CUSTOM_BASE_URL` | no | Set to `1` to allow a non-climbx.so base URL (dev/staging). Off by default so the key can't be sent to an unexpected host. |
 
 ### Claude Code
 
+Avoid typing the key inline (it would land in your shell history). Reference an environment variable instead — e.g. one loaded from your shell profile or a secret manager:
+
 ```bash
-claude mcp add climbx --env CLIMBX_API_KEY=climbx_sk_... -- node /path/to/climbx-mcp/dist/index.js
+claude mcp add climbx --env CLIMBX_API_KEY="$CLIMBX_API_KEY" -- node /path/to/climbx-mcp/dist/index.js
 ```
 
 ### Claude Desktop

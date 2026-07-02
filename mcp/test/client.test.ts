@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ClimbxClient, ClimbxError } from "../src/client.js";
+import { ClimbxClient, ClimbxError, validateBaseUrl } from "../src/client.js";
 import { findUrlInText, validateImageUrls, validateIsoDate } from "../src/tools.js";
 
 function jsonResponse(status: number, body: unknown, headers: Record<string, string> = {}): Response {
@@ -108,9 +108,46 @@ describe("local validation", () => {
     expect(validateImageUrls(undefined)).toBeNull();
   });
 
-  it("validates ISO datetimes", () => {
+  it("validates ISO datetimes strictly (timezone required)", () => {
     expect(validateIsoDate("2026-06-01T14:00:00Z", "scheduled_for")).toBeNull();
+    expect(validateIsoDate("2026-06-01T14:00+02:00", "scheduled_for")).toBeNull();
     expect(validateIsoDate("not-a-date", "scheduled_for")).toContain("ISO 8601");
+    expect(validateIsoDate("2026-06-01", "scheduled_for")).toContain("ISO 8601");
+    expect(validateIsoDate("06/01/2026", "scheduled_for")).toContain("ISO 8601");
+    expect(validateIsoDate("2026-06-01T14:00:00", "scheduled_for")).toContain("ISO 8601");
     expect(validateIsoDate(undefined, "start")).toBeNull();
+  });
+
+  it("guards the base URL against key exfiltration", () => {
+    expect(validateBaseUrl("https://climbx.so/api/v1")).toBeNull();
+    expect(validateBaseUrl("https://staging.climbx.so/api/v1")).toBeNull();
+    expect(validateBaseUrl("http://climbx.so/api/v1")).toContain("https");
+    expect(validateBaseUrl("https://evil.example/api/v1")).toContain("refusing");
+    expect(validateBaseUrl("https://evil.example/api/v1", true)).toBeNull();
+    expect(validateBaseUrl("not a url")).toContain("not a valid URL");
+  });
+});
+
+describe("error diagnostics", () => {
+  it("keeps a bounded snippet of non-JSON error bodies", async () => {
+    const fetchFn = vi.fn(async () =>
+      new Response("<html>Bad Gateway from proxy</html>", { status: 502 }),
+    );
+    const { client } = makeClient(fetchFn as unknown as typeof fetch);
+    const err = await client.post("/posts", { text: "hi" }).catch((e) => e);
+    expect(err).toBeInstanceOf(ClimbxError);
+    expect(err.code).toBe("http_502");
+    expect(err.message).toContain("Bad Gateway from proxy");
+  });
+
+  it("classifies timeouts distinctly from network errors on writes", async () => {
+    const timeoutErr = new Error("The operation was aborted due to timeout");
+    timeoutErr.name = "TimeoutError";
+    const fetchFn = vi.fn().mockRejectedValue(timeoutErr);
+    const { client } = makeClient(fetchFn as unknown as typeof fetch);
+    const err = await client.post("/posts", { text: "hi" }).catch((e) => e);
+    expect(err.code).toBe("timeout");
+    expect(err.message).toContain("timed out");
+    expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 });

@@ -40,10 +40,36 @@ export class ClimbxError extends Error {
 export interface ClimbxClientOptions {
   apiKey: string;
   baseUrl?: string;
+  /** Per-request timeout in ms. Default 30s. */
+  timeoutMs?: number;
   /** Injectable for tests. */
   fetchFn?: typeof fetch;
   /** Injectable for tests. */
   sleepFn?: (ms: number) => Promise<void>;
+}
+
+/**
+ * Guards against sending the Bearer key to an unexpected host: the base URL
+ * must be https and a climbx.so host, unless the caller explicitly allows
+ * custom hosts (dev/staging setups).
+ */
+export function validateBaseUrl(baseUrl: string, allowCustomHost = false): string | null {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    return `CLIMBX_BASE_URL is not a valid URL: ${baseUrl}`;
+  }
+  if (url.protocol !== "https:") {
+    return `CLIMBX_BASE_URL must use https (the API key is sent as a Bearer header), got: ${url.protocol}//`;
+  }
+  if (!allowCustomHost && url.hostname !== "climbx.so" && !url.hostname.endsWith(".climbx.so")) {
+    return (
+      `CLIMBX_BASE_URL points at ${url.hostname} — refusing to send the API key to a non-climbx.so host. ` +
+      "Set CLIMBX_ALLOW_CUSTOM_BASE_URL=1 if this is intentional (dev/staging)."
+    );
+  }
+  return null;
 }
 
 interface RequestOptions {
@@ -53,16 +79,20 @@ interface RequestOptions {
 
 const MAX_RETRY_AFTER_MS = 30_000;
 const NETWORK_RETRY_DELAY_MS = 500;
+const REQUEST_TIMEOUT_MS = 30_000;
+const ERROR_BODY_SNIPPET_LEN = 200;
 
 export class ClimbxClient {
   private readonly apiKey: string;
   private readonly baseUrl: string;
+  private readonly timeoutMs: number;
   private readonly fetchFn: typeof fetch;
   private readonly sleepFn: (ms: number) => Promise<void>;
 
   constructor(opts: ClimbxClientOptions) {
     this.apiKey = opts.apiKey;
     this.baseUrl = (opts.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");
+    this.timeoutMs = opts.timeoutMs ?? REQUEST_TIMEOUT_MS;
     this.fetchFn = opts.fetchFn ?? fetch;
     this.sleepFn = opts.sleepFn ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
   }
@@ -106,16 +136,20 @@ export class ClimbxClient {
           ...(opts.body !== undefined ? { "Content-Type": "application/json" } : {}),
         },
         body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (err) {
       if (retryable) {
         await this.sleepFn(NETWORK_RETRY_DELAY_MS);
         return this.request(method, path, opts, true);
       }
+      const isTimeout = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
       throw new ClimbxError(
         0,
-        "network_error",
-        `Network error calling ${method} ${path}: ${err instanceof Error ? err.message : String(err)}`,
+        isTimeout ? "timeout" : "network_error",
+        isTimeout
+          ? `${method} ${path} timed out after ${this.timeoutMs}ms`
+          : `Network error calling ${method} ${path}: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
 
@@ -135,7 +169,11 @@ export class ClimbxClient {
 
     const errBody = (payload ?? {}) as { error?: string; message?: string };
     const code = errBody.error ?? `http_${res.status}`;
-    const message = errBody.message ?? `${method} ${path} failed with HTTP ${res.status}`;
+    let message = errBody.message ?? `${method} ${path} failed with HTTP ${res.status}`;
+    if (!errBody.message && text) {
+      // Non-JSON error body (proxy/HTML error page): keep a bounded snippet for diagnostics.
+      message += ` — response body (truncated): ${text.slice(0, ERROR_BODY_SNIPPET_LEN)}`;
+    }
 
     if (code === "rate_limited" && retryable) {
       const retryAfterSec = Number(res.headers.get("Retry-After") ?? "1");
