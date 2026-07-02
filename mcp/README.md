@@ -1,6 +1,6 @@
 # climbx-mcp
 
-An [MCP](https://modelcontextprotocol.io) server for the [ClimbX](https://climbx.so) API: publish and schedule X posts, and read your analytics, voice profile, and learnings from any MCP client (Claude Desktop, Claude Code, Claude Cowork, and others).
+An [MCP](https://modelcontextprotocol.io) server for the [ClimbX](https://climbx.so) API: publish and schedule X posts, read your analytics, voice profile, and learnings, and pull outlier posts from the inspiration feeds, all from any MCP client (Claude Desktop, Claude Code, Claude Cowork, and others).
 
 > **Community project.** Not affiliated with or endorsed by ClimbX. It wraps the official public API documented at [climbx.so/developers/docs](https://climbx.so/developers/docs).
 
@@ -52,7 +52,7 @@ claude mcp add climbx --env CLIMBX_API_KEY="$CLIMBX_API_KEY" -- node /path/to/cl
 | Tool | What it does |
 |---|---|
 | `publish_post` | Publish a post to X immediately (text + up to 4 image URLs) |
-| `list_posts` | Recent published posts with metrics (impressions, likes, replies, …) |
+| `list_posts` | Recent published posts with metrics (impressions, likes, replies, and more) |
 | `schedule_post` | Queue a post for a future time |
 | `list_scheduled` | Upcoming pending posts |
 | `reschedule_post` | Move a pending scheduled post to a new time |
