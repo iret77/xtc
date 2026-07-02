@@ -63,6 +63,9 @@ claude mcp add climbx --env CLIMBX_API_KEY="$CLIMBX_API_KEY" -- node /path/to/cl
 | `get_voice_profile` | Voice persona, learnings, cadence targets, posting schedule |
 | `get_learnings` | Current do-more/do-less rules with evidence |
 | `get_learnings_history` | Snapshots of the learnings set over time |
+| `get_inspiration_options` | Filter values the inspiration feeds accept, plus your tracked creators |
+| `get_following_outliers` | Outlier posts from the creators you track (multiplier vs author baseline) |
+| `get_surprise_outliers` | Discovery feed: outliers from across the network with filters |
 
 ## Good to know (ClimbX API limits)
 

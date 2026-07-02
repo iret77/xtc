@@ -48,6 +48,9 @@ await check("GET /analytics/niches", () => client.get("/analytics/niches"));
 await check("GET /voice", () => client.get("/voice"));
 await check("GET /learnings", () => client.get("/learnings"));
 await check("GET /learnings/history", () => client.get("/learnings/history"));
+await check("GET /inspiration/options", () => client.get("/inspiration/options"));
+await check("GET /inspiration/following", () => client.get("/inspiration/following", { limit: 5 }));
+await check("GET /inspiration/surprise", () => client.get("/inspiration/surprise", { min_multiplier: 3, limit: 5 }));
 
 if (writeMode) {
   console.log("\n--write: schedule/cancel roundtrip (consumes one daily-cap slot!)");

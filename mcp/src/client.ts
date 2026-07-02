@@ -23,6 +23,8 @@ const ERROR_HINTS: Record<string, string> = {
   image_rejected:
     "An image_url could not be used: bad URL, blocked host, too large, or not an image. Use public https image URLs.",
   not_found: "No scheduled post with that id exists on this account.",
+  invalid_query:
+    "One or more query parameters are invalid. Check get_inspiration_options for the accepted filter values.",
 };
 
 export class ClimbxError extends Error {

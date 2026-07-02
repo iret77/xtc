@@ -278,6 +278,89 @@ export function registerTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "get_inspiration_options",
+    {
+      title: "Inspiration filter options",
+      description:
+        "Self-describing map of the filters both inspiration feeds accept (every enumerated value with label and default) " +
+        "plus the creators you track (tracked_handles). Fetch it once to learn which filter values " +
+        "get_following_outliers and get_surprise_outliers understand.",
+      inputSchema: {},
+    },
+    run(async (c) => ok(await c.get("/inspiration/options"))),
+  );
+
+  server.registerTool(
+    "get_following_outliers",
+    {
+      title: "Following outliers",
+      description:
+        "Outlier posts from the creators you track in ClimbX: real posts that outperformed their author's baseline, " +
+        "each with a multiplier (post vs author baseline), format, niche, metrics, and a deep post_url. " +
+        "Read-only; reflects data already scanned in the app.",
+      inputSchema: {
+        handles: z
+          .string()
+          .optional()
+          .describe("Comma-separated handles to narrow to a subset of the creators you track. Omit for all of them."),
+        limit: z.number().int().min(1).max(100).optional().describe("Max outliers to return, 1-100. Default 30."),
+      },
+    },
+    run(async (c, args: { handles?: string; limit?: number }) =>
+      ok(await c.get("/inspiration/following", { handles: args.handles, limit: args.limit })),
+    ),
+  );
+
+  server.registerTool(
+    "get_surprise_outliers",
+    {
+      title: "Surprise-me outliers",
+      description:
+        "Random outlier posts from across the network, excluding creators you already track (the app's discovery feed). " +
+        "Same post shape as get_following_outliers. Filters snap to the app's buckets; " +
+        "see get_inspiration_options for the accepted values.",
+      inputSchema: {
+        min_multiplier: z
+          .number()
+          .optional()
+          .describe("Floor on the outlier multiplier; snaps to 1.5, 2, 3, or 7."),
+        min_impressions: z
+          .number()
+          .int()
+          .optional()
+          .describe("Floor on impressions; snaps to 0, 10000, 50000, or 100000."),
+        format: z.string().optional().describe("Restrict to one format (e.g. hot_take); omit or all = no filter."),
+        recency: z.string().optional().describe("7d or 30d to limit to recent posts; omit or all = no floor."),
+        image: z.string().optional().describe("with = posts with media, without = text-only; omit or all = both."),
+        limit: z.number().int().min(1).max(100).optional().describe("Max outliers to return, 1-100. Default 30."),
+      },
+    },
+    run(
+      async (
+        c,
+        args: {
+          min_multiplier?: number;
+          min_impressions?: number;
+          format?: string;
+          recency?: string;
+          image?: string;
+          limit?: number;
+        },
+      ) =>
+        ok(
+          await c.get("/inspiration/surprise", {
+            min_multiplier: args.min_multiplier,
+            min_impressions: args.min_impressions,
+            format: args.format,
+            recency: args.recency,
+            image: args.image,
+            limit: args.limit,
+          }),
+        ),
+    ),
+  );
+
+  server.registerTool(
     "get_voice_profile",
     {
       title: "Voice profile",

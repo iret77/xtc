@@ -128,6 +128,33 @@ describe("local validation", () => {
   });
 });
 
+describe("inspiration endpoints", () => {
+  it("passes surprise filters as query params and omits undefined ones", async () => {
+    const fetchFn = vi.fn(async (url: any) => {
+      const u = new URL(String(url));
+      expect(u.pathname).toBe("/api/v1/inspiration/surprise");
+      expect(u.searchParams.get("min_multiplier")).toBe("3");
+      expect(u.searchParams.get("recency")).toBe("30d");
+      expect(u.searchParams.has("format")).toBe(false);
+      return jsonResponse(200, { feed: "surprise", outliers: [] });
+    });
+    const { client } = makeClient(fetchFn as unknown as typeof fetch);
+    await expect(
+      client.get("/inspiration/surprise", { min_multiplier: 3, recency: "30d", format: undefined }),
+    ).resolves.toEqual({ feed: "surprise", outliers: [] });
+  });
+
+  it("maps invalid_query with a pointer to the options tool", async () => {
+    const fetchFn = vi.fn(async () =>
+      jsonResponse(400, { error: "invalid_query", message: "recency must be 7d, 30d or all" }),
+    );
+    const { client } = makeClient(fetchFn as unknown as typeof fetch);
+    const err = await client.get("/inspiration/surprise", { recency: "yesterday" }).catch((e) => e);
+    expect(err.code).toBe("invalid_query");
+    expect(err.hint).toContain("get_inspiration_options");
+  });
+});
+
 describe("error diagnostics", () => {
   it("keeps a bounded snippet of non-JSON error bodies", async () => {
     const fetchFn = vi.fn(async () =>
