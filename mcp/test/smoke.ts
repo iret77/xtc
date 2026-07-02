@@ -17,7 +17,11 @@ if (!apiKey) {
 }
 
 const writeMode = process.argv.includes("--write");
-const client = new ClimbxClient({ apiKey, baseUrl: process.env.CLIMBX_BASE_URL });
+const client = new ClimbxClient({
+  apiKey,
+  baseUrl: process.env.CLIMBX_BASE_URL,
+  allowCustomHost: process.env.CLIMBX_ALLOW_CUSTOM_BASE_URL === "1",
+});
 
 function preview(data: unknown): string {
   const json = JSON.stringify(data);

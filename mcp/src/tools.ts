@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ClimbxClient, ClimbxError, DEFAULT_BASE_URL, validateBaseUrl } from "./client.js";
+import { ClimbxClient, ClimbxError, DEFAULT_BASE_URL } from "./client.js";
 
 const SETUP_HINT =
   "CLIMBX_API_KEY is not set. Create an API key in ClimbX under Settings → API " +
@@ -86,19 +86,23 @@ const windowFields = {
   end: z.string().optional().describe("ISO 8601 window end. Defaults to now."),
 };
 
-export function registerTools(server: McpServer): void {
+export function registerTools(server: McpServer, makeClient?: () => ClimbxClient): void {
   let client: ClimbxClient | null = null;
 
   function getClient(): ClimbxClient | null {
     if (client) return client;
+    if (makeClient) {
+      client = makeClient();
+      return client;
+    }
     const apiKey = process.env.CLIMBX_API_KEY;
     if (!apiKey) return null;
-    const baseUrl = process.env.CLIMBX_BASE_URL ?? DEFAULT_BASE_URL;
-    const baseUrlError = validateBaseUrl(baseUrl, process.env.CLIMBX_ALLOW_CUSTOM_BASE_URL === "1");
-    if (baseUrlError) {
-      throw new ClimbxError(0, "invalid_base_url", baseUrlError);
-    }
-    client = new ClimbxClient({ apiKey, baseUrl });
+    // Base-URL validation happens inside the ClimbxClient constructor.
+    client = new ClimbxClient({
+      apiKey,
+      baseUrl: process.env.CLIMBX_BASE_URL ?? DEFAULT_BASE_URL,
+      allowCustomHost: process.env.CLIMBX_ALLOW_CUSTOM_BASE_URL === "1",
+    });
     return client;
   }
 
@@ -282,9 +286,9 @@ export function registerTools(server: McpServer): void {
     {
       title: "Inspiration filter options",
       description:
-        "Self-describing map of the filters both inspiration feeds accept (every enumerated value with label and default) " +
-        "plus the creators you track (tracked_handles). Fetch it once to learn which filter values " +
-        "get_following_outliers and get_surprise_outliers understand.",
+        "Self-describing map of the filters each inspiration feed accepts, plus the creators you track (tracked_handles). " +
+        "The following feed takes handles and limit only; the surprise feed takes the full filter set " +
+        "(min_multiplier, min_impressions, format, recency, image). Fetch it once to learn the accepted values.",
       inputSchema: {},
     },
     run(async (c) => ok(await c.get("/inspiration/options"))),
@@ -329,9 +333,18 @@ export function registerTools(server: McpServer): void {
           .int()
           .optional()
           .describe("Floor on impressions; snaps to 0, 10000, 50000, or 100000."),
-        format: z.string().optional().describe("Restrict to one format (e.g. hot_take); omit or all = no filter."),
-        recency: z.string().optional().describe("7d or 30d to limit to recent posts; omit or all = no floor."),
-        image: z.string().optional().describe("with = posts with media, without = text-only; omit or all = both."),
+        format: z
+          .string()
+          .optional()
+          .describe("Restrict to one format (e.g. hot_take); omit for no filter. Values: see get_inspiration_options."),
+        recency: z
+          .enum(["7d", "30d", "all"])
+          .optional()
+          .describe("7d or 30d to limit to recent posts; omit or all = no floor."),
+        image: z
+          .enum(["with", "without", "all"])
+          .optional()
+          .describe("with = posts with media, without = text-only; omit or all = both."),
         limit: z.number().int().min(1).max(100).optional().describe("Max outliers to return, 1-100. Default 30."),
       },
     },

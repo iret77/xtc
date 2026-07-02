@@ -42,6 +42,8 @@ export class ClimbxError extends Error {
 export interface ClimbxClientOptions {
   apiKey: string;
   baseUrl?: string;
+  /** Allow a non-climbx.so base URL (dev/staging). Default false. */
+  allowCustomHost?: boolean;
   /** Per-request timeout in ms. Default 30s. */
   timeoutMs?: number;
   /** Injectable for tests. */
@@ -92,8 +94,14 @@ export class ClimbxClient {
   private readonly sleepFn: (ms: number) => Promise<void>;
 
   constructor(opts: ClimbxClientOptions) {
+    const baseUrl = opts.baseUrl ?? DEFAULT_BASE_URL;
+    // Enforced here so no caller (tools, smoke test, future consumers) can bypass it.
+    const baseUrlError = validateBaseUrl(baseUrl, opts.allowCustomHost ?? false);
+    if (baseUrlError) {
+      throw new ClimbxError(0, "invalid_base_url", baseUrlError);
+    }
     this.apiKey = opts.apiKey;
-    this.baseUrl = (opts.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");
+    this.baseUrl = baseUrl.replace(/\/$/, "");
     this.timeoutMs = opts.timeoutMs ?? REQUEST_TIMEOUT_MS;
     this.fetchFn = opts.fetchFn ?? fetch;
     this.sleepFn = opts.sleepFn ?? ((ms) => new Promise((r) => setTimeout(r, ms)));

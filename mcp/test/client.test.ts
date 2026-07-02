@@ -155,6 +155,69 @@ describe("inspiration endpoints", () => {
   });
 });
 
+describe("tool wiring", () => {
+  it("registers all 15 tools and routes them to the right endpoints", async () => {
+    const { registerTools } = await import("../src/tools.js");
+    const calls: string[] = [];
+    const fetchFn = vi.fn(async (url: any) => {
+      calls.push(String(url));
+      return jsonResponse(200, { ok: true });
+    });
+    const handlers = new Map<string, (args: any) => Promise<any>>();
+    const fakeServer = {
+      registerTool: (name: string, _meta: unknown, handler: (args: any) => Promise<any>) => {
+        handlers.set(name, handler);
+      },
+    };
+    registerTools(
+      fakeServer as any,
+      () => new ClimbxClient({ apiKey: "climbx_sk_test", fetchFn: fetchFn as unknown as typeof fetch }),
+    );
+
+    expect([...handlers.keys()].sort()).toEqual([
+      "cancel_scheduled", "get_analytics", "get_following_outliers", "get_format_performance",
+      "get_inspiration_options", "get_learnings", "get_learnings_history", "get_niche_performance",
+      "get_surprise_outliers", "get_voice_profile", "list_posts", "list_scheduled",
+      "publish_post", "reschedule_post", "schedule_post",
+    ]);
+
+    const res = await handlers.get("get_following_outliers")!({ handles: "@levelsio", limit: 5 });
+    expect(res.isError).toBeUndefined();
+    expect(calls[0]).toContain("/api/v1/inspiration/following");
+    expect(calls[0]).toContain("handles=%40levelsio");
+    expect(calls[0]).toContain("limit=5");
+
+    await handlers.get("get_surprise_outliers")!({ min_multiplier: 3, recency: "30d" });
+    expect(calls[1]).toContain("/api/v1/inspiration/surprise");
+    expect(calls[1]).toContain("min_multiplier=3");
+    expect(calls[1]).toContain("recency=30d");
+  });
+
+  it("rejects URL-bearing posts locally without any request", async () => {
+    const { registerTools } = await import("../src/tools.js");
+    const fetchFn = vi.fn();
+    const handlers = new Map<string, (args: any) => Promise<any>>();
+    registerTools(
+      { registerTool: (n: string, _m: unknown, h: any) => handlers.set(n, h) } as any,
+      () => new ClimbxClient({ apiKey: "climbx_sk_test", fetchFn: fetchFn as unknown as typeof fetch }),
+    );
+    const res = await handlers.get("publish_post")!({ text: "check https://example.com" });
+    expect(res.isError).toBe(true);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+});
+
+describe("base-url guard in constructor", () => {
+  it("throws when constructed with a foreign host and no override", () => {
+    expect(
+      () => new ClimbxClient({ apiKey: "k", baseUrl: "https://evil.example/api/v1" }),
+    ).toThrowError(/refusing/);
+    expect(
+      () => new ClimbxClient({ apiKey: "k", baseUrl: "https://evil.example/api/v1", allowCustomHost: true }),
+    ).not.toThrow();
+  });
+});
+
 describe("error diagnostics", () => {
   it("keeps a bounded snippet of non-JSON error bodies", async () => {
     const fetchFn = vi.fn(async () =>
