@@ -374,6 +374,32 @@ export function registerTools(server: McpServer, makeClient?: () => ClimbxClient
   );
 
   server.registerTool(
+    "suggest_reply",
+    {
+      title: "Draft a reply suggestion",
+      description:
+        "Given a post you are considering replying to, returns ONE suggested reply in the account owner's voice " +
+        "(same drafting core and guardrails as the ClimbX Engage tab). The suggestion is for the human to edit and " +
+        "post on X themselves; replies cannot be published through this API. Each call spends one shared daily AI " +
+        "credit, and drafting stays locked until the owner has written enough replies by hand in the app. " +
+        "Requires a read & write API key.",
+      inputSchema: {
+        text: z.string().min(1).max(4000).describe("The post to reply to, 1-4000 characters."),
+        author_handle: z.string().optional().describe("The post author's handle; a leading @ is stripped."),
+      },
+    },
+    run(async (c, args: { text: string; author_handle?: string }) => {
+      const handle = args.author_handle?.replace(/^@/, "");
+      return ok(
+        await c.post("/engage/suggest-reply", {
+          text: args.text,
+          ...(handle ? { authorHandle: handle } : {}),
+        }),
+      );
+    }),
+  );
+
+  server.registerTool(
     "get_voice_profile",
     {
       title: "Voice profile",

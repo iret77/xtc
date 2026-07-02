@@ -12,6 +12,8 @@ An [MCP](https://modelcontextprotocol.io) server for the [ClimbX](https://climbx
 
 ## Install
 
+> **Zero-install alternative:** ClimbX hosts an official remote MCP server at `https://climbx.so/mcp` (HTTP transport, same Bearer key). This project is the community-built local stdio alternative wrapping the same API.
+
 ### Claude Desktop: one-click bundle (easiest)
 
 1. Download [climbx-mcp.mcpb](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-mcp.mcpb) from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest)
@@ -81,10 +83,13 @@ claude mcp add climbx --env CLIMBX_API_KEY="$CLIMBX_API_KEY" -- node /path/to/cl
 | `get_inspiration_options` | Filter values the inspiration feeds accept, plus your tracked creators |
 | `get_following_outliers` | Outlier posts from the creators you track (multiplier vs author baseline) |
 | `get_surprise_outliers` | Discovery feed: outliers from across the network with filters |
+| `suggest_reply` | Draft one reply suggestion in the owner's voice (spends a daily AI credit) |
 
 ## Good to know (ClimbX API limits)
 
+- **API keys have scopes:** read & write (full API) or read-only (analytics, voice, learnings, inspiration). The posting tools and `suggest_reply` need a read & write key.
 - **5 posts per day** per account across publish and schedule, resets 00:00 UTC. Cancelling a scheduled post does **not** refund the slot.
+- **`suggest_reply` spends one shared daily AI credit** per call and stays locked until you have written enough replies by hand in the app. Replies cannot be published through the API; you post them on X yourself.
 - **No URLs in post text.** ClimbX rejects link posts. This server also rejects them locally before spending a request.
 - Read endpoints allow ~60 requests/minute; the server honors `Retry-After` and retries once.
 - Using the API refreshes your ClimbX data in the background, so there is no need to open the web app.

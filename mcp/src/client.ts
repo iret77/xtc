@@ -25,6 +25,12 @@ const ERROR_HINTS: Record<string, string> = {
   not_found: "No scheduled post with that id exists on this account.",
   invalid_query:
     "One or more query parameters are invalid. Check get_inspiration_options for the accepted filter values.",
+  read_only_key:
+    "The API key is read-only and this endpoint writes. Create a read & write key in ClimbX under Settings > API.",
+  insufficient_credits:
+    "Out of shared daily AI drafting credits. The pool refills daily.",
+  locked:
+    "AI reply drafting is locked until the owner has written enough replies in their own words in the ClimbX app.",
 };
 
 export class ClimbxError extends Error {
