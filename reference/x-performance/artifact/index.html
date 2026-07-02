@@ -1,0 +1,1455 @@
+<!DOCTYPE html><script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "X Performance",
+  "schemaVersion": 1,
+  "description": "X Performance Dashboard — @iret77 & @byte5ai mit Account-Switcher",
+  "mcpTools": [
+    "mcp__x-twitter__get_user",
+    "mcp__x-twitter__get_timeline",
+    "mcp__x-twitter__get_image_as_base64"
+  ],
+  "mcpServerNames": [
+    "x-twitter",
+    "x-twitter",
+    "x-twitter"
+  ]
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>X Performance</title>
+<!-- artifact-name: X Performance -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg:     #1A1918;
+    --card:   #242220;
+    --card2:  #2C2A28;
+    --border: #363330;
+    --text:   #EDE9E3;
+    --muted:  #8A847E;
+    --subtle: #5A5550;
+    --accent: #C96B45;
+    --acc-h:  #B85E3A;
+    --green:  #4CAF7D;
+    --yellow: #D4A847;
+    --red:    #C94545;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 16px;
+    font-size: 14px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .avatar-fallback {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .header-text h1 { font-size: 17px; font-weight: 700; }
+  .header-text span { font-size: 13px; color: var(--muted); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+  }
+
+  .stat-card .label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  .stat-card .value { font-size: 22px; font-weight: 700; color: var(--text); }
+  .stat-card .sub   { font-size: 11px; color: var(--subtle); margin-top: 2px; }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .toggle-group {
+    display: flex;
+    background: var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .toggle-group button {
+    padding: 5px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .toggle-group button.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  .sort-select {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .load-more {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  .load-more:hover { background: var(--card2); }
+
+  /* ── Chart Card ─────────────────────────────── */
+  .chart-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 12px 16px 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+    height: 200px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+  }
+
+  .chart-title {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .chart-metric-group {
+    display: flex;
+    background: var(--card2);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 1px;
+  }
+
+  .chart-metric-group button {
+    padding: 3px 9px;
+    border: none;
+    background: transparent;
+    border-radius: 5px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--muted);
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .chart-metric-group button.active {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .chart-canvas-wrap {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+  }
+
+  .chart-canvas-wrap canvas { position: absolute; inset: 0; }
+
+  /* ── Posts ─────────────────────────────────── */
+  .posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .post-card {
+    display: block;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.15s;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .post-card:hover { border-color: var(--accent); }
+  .post-card.reply { background: var(--card2); }
+
+  .post-text {
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+    color: var(--text);
+    white-space: pre-wrap;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+
+  .post-meta { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+
+  .metrics-row { display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .metric {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .metric .icon { font-size: 13px; }
+  .metric .num  { font-weight: 600; color: var(--text); }
+  .metric.impressions .num { color: var(--accent); }
+
+  .impressions-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+
+  .impressions-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--acc-h));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .badge-reply {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--card2);
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .org-imp {
+    display: block;
+    font-size: 10px;
+    color: #9B7FD4;
+    margin-top: 2px;
+    white-space: nowrap;
+  }
+
+  .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 13px; }
+  .error   { text-align: center; padding: 40px; color: #e0245e; font-size: 13px; }
+
+  /* ── Account Switcher ────────────────────────────────────── */
+  .acc-switcher {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+    background: var(--card2);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .acc-btn {
+    padding: 4px 11px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--muted);
+    transition: background 0.15s, color 0.15s;
+  }
+  .acc-btn.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .acc-btn:not(.active):hover { background: var(--border); color: var(--text); }
+
+  .engagement-pill {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 600;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .pill-high { background: #1E3D2C; color: var(--green); }
+  .pill-mid  { background: #3D2E0E; color: var(--yellow); }
+  .pill-low  { background: var(--card2); color: var(--muted); }
+
+  .toast {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    background: var(--border);
+    color: #fff;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1000;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── Split Card ─────────────────────────────── */
+  .post-card.split {
+    display: grid;
+    grid-template-columns: 1fr 130px;
+    gap: 12px;
+    align-items: start;
+  }
+  .split-left  { min-width: 0; }
+  .split-right {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-top: 2px;
+    flex-shrink: 0;
+  }
+  .split-right .metric-line {
+    display: grid;
+    grid-template-columns: 14px 34px 1fr 38px;
+    gap: 4px;
+    align-items: center;
+    font-size: 11px;
+  }
+  .split-right .metric-line .icon { font-size: 11px; line-height: 1; }
+  .split-right .metric-line .lbl  { color: var(--muted); font-size: 10px; }
+  .split-right .metric-line .val  { font-weight: 600; color: var(--text); text-align: right; }
+  .mbar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .mbar-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+
+  /* ── Table View ──────────────────────────────── */
+  .posts-table { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .table-head {
+    display: grid;
+    grid-template-columns: 1fr 72px 62px 52px 52px 62px;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--card2);
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .table-head span:not(:first-child) { text-align: right; }
+  .table-head span.sort-active { color: var(--accent); }
+  .table-row {
+    display: grid;
+    grid-template-columns: 1fr 72px 62px 52px 52px 62px;
+    gap: 6px;
+    padding: 9px 14px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.12s;
+    align-items: center;
+  }
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover { background: var(--card2); }
+  .table-row.reply-row { background: var(--card2); }
+  .tcell-text {
+    font-size: 12px;
+    line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    color: var(--text);
+  }
+  .tcell { font-size: 12px; font-weight: 600; color: var(--text); text-align: right; line-height: 1.3; }
+  .tcell.accent { color: var(--accent); }
+  .tcell.muted  { color: var(--muted); font-weight: 400; font-size: 11px; }
+
+  /* ── Wide-only UI ────────────────────────────── */
+  .wide-only { display: none; }
+
+  /* ── Responsive (muss nach allen Komponenten stehen) ─────── */
+  @media (min-width: 480px) {
+    .stats-row { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  @media (min-width: 820px) {
+    .posts-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .posts-list.single-col {
+      grid-template-columns: 1fr;
+    }
+    .posts-list .load-more-wrap { grid-column: 1 / -1; }
+    .post-text { -webkit-line-clamp: 6; }
+    .wide-only { display: flex; }
+  }
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+<div id="app">
+  <div class="loading">Lade Posts…</div>
+</div>
+
+<script>
+// ── Account Config ───────────────────────────────────────────
+const ACCOUNTS = {
+  iret77:  { username: 'iret77',  userId: '39618008',            mcpServer: 'x-twitter', displayName: '@iret77'  },
+  byte5ai: { username: 'byte5ai', userId: '2054533683168579585', mcpServer: 'x-twitter', displayName: '@byte5ai' },
+};
+let activeAccKey = localStorage.getItem('x_active_account') || 'iret77';
+let USER_ID         = ACCOUNTS[activeAccKey].userId;
+let CACHE_KEY       = 'x_cache_'     + USER_ID;
+let USER_CACHE_KEY  = 'x_user_'      + USER_ID;
+const USER_CACHE_TTL  = 6 * 3600 * 1000;
+let AVATAR_KEY      = 'x_avatar_'    + USER_ID;
+let LABEL_CACHE_KEY = 'x_labels_'    + USER_ID;
+let FOLLOWERS_KEY   = 'x_followers_' + USER_ID;
+const MAX_PER_PAGE_DATE  = 20;
+const MAX_PER_PAGE_OTHER = 100;
+
+// MCP helper — returns full tool name for active account's server
+function xmcp(tool) { return 'mcp__' + ACCOUNTS[activeAccKey].mcpServer + '__' + tool; }
+
+// Switch account: update all per-account vars + re-init
+window.switchAccount = function(key) {
+  if (!ACCOUNTS[key] || key === activeAccKey) return;
+  activeAccKey = key;
+  localStorage.setItem('x_active_account', key);
+  USER_ID         = ACCOUNTS[key].userId;
+  CACHE_KEY       = 'x_cache_'     + USER_ID;
+  USER_CACHE_KEY  = 'x_user_'      + USER_ID;
+  AVATAR_KEY      = 'x_avatar_'    + USER_ID;
+  LABEL_CACHE_KEY = 'x_labels_'    + USER_ID;
+  FOLLOWERS_KEY   = 'x_followers_' + USER_ID;
+  // Reset runtime state
+  allPosts = []; displayedPosts = []; nextToken = null; hasMore = false;
+  if (chartInstance)     { chartInstance.destroy();     chartInstance     = null; }
+  if (followerChartInst) { followerChartInst.destroy(); followerChartInst = null; }
+  _labelMap = JSON.parse(localStorage.getItem(LABEL_CACHE_KEY) || '{}');
+  window._userInfo = null;
+  document.getElementById('app').innerHTML = '<div class="loading">Lade Account…</div>';
+  init();
+};
+
+let allPosts            = [];
+let displayedPosts      = [];
+let nextToken           = null;
+let hasMore             = false;
+let chartInstance       = null;
+let followerChartInst   = null;
+let filterMode          = localStorage.getItem('x_filter')       || 'all';
+let sortMode            = localStorage.getItem('x_sort')         || 'date';
+let chartMetric         = localStorage.getItem('x_chart_metric') || 'impressions';
+let minImpER            = parseInt(localStorage.getItem('x_min_imp_er') || '100');
+let wideViewMode        = localStorage.getItem('x_wide_view')    || 'split';
+
+// ── Cache ────────────────────────────────────────────────────
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? JSON.parse(raw)
+               : { posts: {}, last_refresh_at: 0, last_full_refresh_at: 0, last_next_token: null };
+  } catch(_) {
+    return { posts: {}, last_refresh_at: 0, last_full_refresh_at: 0, last_next_token: null };
+  }
+}
+function saveCache(cache) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch(_) {}
+}
+function mergePosts(cache, freshPosts) {
+  for (const p of freshPosts) cache.posts[p.id] = p;
+}
+function cacheToArray(cache) {
+  return Object.values(cache.posts);
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+function fmt(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n/1000).toFixed(1) + 'K';
+  return String(n);
+}
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return m + 'm';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h';
+  return Math.floor(h / 24) + 'd';
+}
+function engagementRate(p) {
+  const m = p.public_metrics || p;
+  const imp = m.impression_count || 0;
+  if (!imp) return 0;
+  const votes = p._poll_votes || 0;
+  return ((m.like_count + m.retweet_count + m.reply_count + m.bookmark_count + m.quote_count + votes) / imp) * 100;
+}
+function engagementPill(rate) {
+  const r = rate.toFixed(2);
+  if (rate >= 3) return `<span class="engagement-pill pill-high">${r}% ER</span>`;
+  if (rate >= 1) return `<span class="engagement-pill pill-mid">${r}% ER</span>`;
+  return `<span class="engagement-pill pill-low">${r}% ER</span>`;
+}
+function isReply(post) {
+  return post.referenced_tweets && post.referenced_tweets.some(r => r.type === 'replied_to');
+}
+function isRetweet(post) {
+  return post.referenced_tweets && post.referenced_tweets.some(r => r.type === 'retweeted');
+}
+function isBoosted(post) {
+  const orgImp = post.organic_metrics?.impression_count;
+  const pubImp = post.public_metrics?.impression_count;
+  if (!orgImp || !pubImp || pubImp === 0) return false;
+  return (orgImp / pubImp) < 0.05; // < 5% organische Reichweite = geboosted
+}
+function orgImpHtml(post) {
+  if (!isBoosted(post)) return '';
+  const orgImp = post.organic_metrics?.impression_count || 0;
+  const pct = Math.round((orgImp / post.public_metrics.impression_count) * 100);
+  return `<span class="org-imp" title="${pct}% organisch">⚡ ${fmt(orgImp)} org.</span>`;
+}
+
+// ── Filter / Sort ────────────────────────────────────────────
+function applyFilterSort(posts) {
+  let result = posts.filter(p => !isRetweet(p));
+  if (filterMode === 'posts')   result = result.filter(p => !isReply(p));
+  if (filterMode === 'replies') result = result.filter(p => isReply(p));
+  if (minImpER > 0)
+    result = result.filter(p => p.public_metrics.impression_count >= minImpER);
+  return result.sort((a, b) => {
+    const ma = a.public_metrics, mb = b.public_metrics;
+    if (sortMode === 'impressions') return mb.impression_count - ma.impression_count;
+    if (sortMode === 'likes')       return mb.like_count       - ma.like_count;
+    if (sortMode === 'retweets')    return mb.retweet_count    - ma.retweet_count;
+    if (sortMode === 'replies')     return mb.reply_count      - ma.reply_count;
+    if (sortMode === 'er')          return engagementRate(b)   - engagementRate(a);
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+}
+function rebuildDisplay() {
+  displayedPosts = applyFilterSort(allPosts);
+}
+
+// ── Toast ────────────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(msg, duration) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), duration || 2500);
+}
+
+// ── Stats ────────────────────────────────────────────────────
+function totalImpressions() {
+  return allPosts.filter(p => !isReply(p) && !isRetweet(p))
+    .reduce((s, p) => s + p.public_metrics.impression_count, 0);
+}
+
+// ── Label Cache (per Post-ID) ────────────────────────────────
+let _labelMap   = JSON.parse(localStorage.getItem(LABEL_CACHE_KEY) || '{}');
+let _chartPosts = [];
+
+function saveLabelMap() {
+  try { localStorage.setItem(LABEL_CACHE_KEY, JSON.stringify(_labelMap)); } catch(_) {}
+}
+
+// Fast local label extraction — immediate, no network
+const STOP = new Set([
+  'the','a','an','is','are','was','were','i','you','he','she','it','we','they',
+  'my','your','our','their','this','that','these','those','and','but','or','so',
+  'of','in','on','at','to','for','with','have','has','had','been','be','do','did',
+  'does','just','not','all','can','will','would','could','should','when','what',
+  'how','why','who','get','got','let','said','want','know','think','like','make',
+  'see','even','more','some','any','its','than','then','about','into','from','now',
+  // German
+  'als','der','die','das','ein','eine','ich','du','er','sie','es','wir','ihr',
+  'mein','dein','sein','kein','noch','auch','nur','schon','mal','immer','wenn',
+  'dann','aber','oder','und','ist','sind','war','wurde','hat','haben','wird',
+  'kann','soll','muss','nicht','schon','sehr','viel','hier','dort','so','wie',
+]);
+
+function extractLabel(text) {
+  const clean = text
+    .replace(/https?:\/\/\S+/g, '')   // URLs entfernen
+    .replace(/^(\s*@\w+\s*)+/, '')     // führende @mentions entfernen
+    .replace(/\n/g, ' ').trim();
+
+  // Prefer hashtags
+  const tags = clean.match(/#(\w+)/g);
+  if (tags && tags.length > 0) {
+    const t = tags[0].replace('#', '');
+    return t.length > 14 ? t.substring(0, 12) + '…' : t;
+  }
+
+  // Key words: strip punctuation, filter stop words, prefer caps / longer
+  const words = clean.split(/\s+/)
+    .map(w => w.replace(/[^a-zA-ZäöüÄÖÜß0-9]/g, ''))
+    .filter(w => w.length > 2 && !STOP.has(w.toLowerCase()));
+
+  if (words.length === 0) return clean.substring(0, 14).trim();
+  if (words.length === 1) return words[0].substring(0, 14);
+
+  const label = words[0] + ' ' + words[1];
+  return label.length > 16 ? label.substring(0, 14) + '…' : label;
+}
+
+function ensureLocalLabels(posts) {
+  let changed = false;
+  for (const p of posts) {
+    const existing = _labelMap[p.id];
+    // Regenerate if missing OR if label starts with @ (stale, pre-fix label)
+    if (!existing || /^@\w/.test(existing)) {
+      _labelMap[p.id] = extractLabel(p.text);
+      changed = true;
+    }
+  }
+  if (changed) saveLabelMap();
+}
+
+// AI enhancement via askClaude — async, overwrites local labels if successful
+async function enhanceLabelsWithAI(posts) {
+  // Only try for posts that have a local (non-AI) label — detect by length heuristic
+  const candidates = posts.filter(p => _labelMap[p.id]);
+  if (candidates.length === 0) return;
+
+  const prompt =
+    'Label each tweet with 1-2 words capturing the main topic. ' +
+    'Use German for German tweets, English otherwise. ' +
+    'Reply ONLY with a JSON array of strings, e.g. ["AI Tools","Marktupdate"]. ' +
+    'No explanation, no code fences, just the raw JSON array.\n\nTweets:\n' +
+    candidates.map((p, i) => `${i + 1}. ${p.text.replace(/\n/g, ' ').substring(0, 160)}`).join('\n');
+
+  try {
+    const raw   = await window.cowork.askClaude(prompt, []);
+    let labels  = null;
+    const m1 = raw.match(/\[[\s\S]*?\]/);
+    if (m1) { try { labels = JSON.parse(m1[0]); } catch(_) {} }
+    if (!labels) {
+      const m2 = raw.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+      if (m2) { try { labels = JSON.parse(m2[1]); } catch(_) {} }
+    }
+    if (!Array.isArray(labels) || labels.length < candidates.length) return;
+
+    let changed = false;
+    candidates.forEach((p, i) => {
+      const lbl = (labels[i] || '').toString().trim();
+      if (lbl && lbl !== _labelMap[p.id]) { _labelMap[p.id] = lbl; changed = true; }
+    });
+    if (changed) { saveLabelMap(); renderChart(); }
+  } catch(_) {}
+}
+
+// ── Chart ────────────────────────────────────────────────────
+const CHART_CFG = {
+  impressions: {
+    label:   'Impressions',
+    color:   '#C96B45',
+    getter:  p => p.public_metrics.impression_count,
+    fmt:     v => fmt(v) + ' Imp.',
+    yFmt:    v => fmt(v),
+  },
+  likes: {
+    label:   'Likes',
+    color:   '#C94545',
+    getter:  p => p.public_metrics.like_count,
+    fmt:     v => fmt(v) + ' Likes',
+    yFmt:    v => fmt(v),
+  },
+  replies: {
+    label:   'Replies',
+    color:   '#4CAF7D',
+    getter:  p => p.public_metrics.reply_count,
+    fmt:     v => fmt(v) + ' Replies',
+    yFmt:    v => fmt(v),
+  },
+  er: {
+    label:   'ER %',
+    color:   '#D4A847',
+    getter:  p => parseFloat(engagementRate(p).toFixed(2)),
+    fmt:     v => v.toFixed(2) + '% ER',
+    yFmt:    v => v.toFixed(1) + '%',
+  },
+};
+
+function renderChart() {
+  const canvas = document.getElementById('impChart');
+  if (!canvas) return;
+
+  const cfg  = CHART_CFG[chartMetric] || CHART_CFG.impressions;
+  const base = displayedPosts;
+  const topN = window.innerWidth >= 820 ? 15 : 10;
+  const top  = [...base].sort((a, b) => cfg.getter(b) - cfg.getter(a)).slice(0, topN);
+  _chartPosts = top;
+
+  // Ensure local labels exist before first draw
+  ensureLocalLabels(top);
+
+  const labels = top.map(p => _labelMap[p.id] || extractLabel(p.text));
+
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data:            top.map(p => cfg.getter(p)),
+        backgroundColor: cfg.color,
+        borderRadius:    4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => {
+              const post = _chartPosts[ctx[0].dataIndex];
+              return post ? (_labelMap[post.id] || labels[ctx[0].dataIndex]) : '';
+            },
+            label: ctx => {
+              return '  ' + cfg.fmt(ctx.raw);
+            },
+            afterLabel: ctx => {
+              const post = _chartPosts[ctx.dataIndex];
+              if (!post) return '';
+              const text = post.text.replace(/\n/g, ' ').trim();
+              const snippet = text.length > 90 ? text.substring(0, 87) + '…' : text;
+              const lines = [];
+              let rem = snippet;
+              while (rem.length > 45) {
+                const cut = rem.lastIndexOf(' ', 45);
+                const pos = cut > 20 ? cut : 45;
+                lines.push('  ' + rem.substring(0, pos));
+                rem = rem.substring(pos + 1);
+              }
+              if (rem) lines.push('  ' + rem);
+              return lines;
+            }
+          },
+          backgroundColor: 'rgba(36,34,32,0.97)',
+          borderColor: 'rgba(54,51,48,0.8)',
+          borderWidth: 1,
+          titleColor: '#EDE9E3',
+          bodyColor: '#8A847E',
+          padding: 10,
+          boxPadding: 4,
+        }
+      },
+      scales: {
+        x: { ticks: { font: { size: 10 }, maxRotation: 30, color: 'rgba(138,132,126,0.9)' }, grid: { display: false } },
+        y: { ticks: { font: { size: 10 }, callback: cfg.yFmt, color: 'rgba(138,132,126,0.9)' }, grid: { color: 'rgba(54,51,48,0.8)' } }
+      }
+    }
+  });
+
+  ensureLocalLabels(top);
+  enhanceLabelsWithAI(top);
+}
+
+// ── Follower History ─────────────────────────────────────────
+function loadFollowerHistory() {
+  try { return JSON.parse(localStorage.getItem(FOLLOWERS_KEY) || '[]'); } catch(_) { return []; }
+}
+
+function recordFollowerSnapshot(count) {
+  const history = loadFollowerHistory();
+  const today   = new Date().toISOString().slice(0, 10);
+  const last = history[history.length - 1];
+  if (last && new Date(last.ts).toISOString().slice(0, 10) === today) {
+    last.count = count;
+  } else {
+    history.push({ ts: Date.now(), count });
+  }
+  if (history.length > 365) history.splice(0, history.length - 365);
+  try { localStorage.setItem(FOLLOWERS_KEY, JSON.stringify(history)); } catch(_) {}
+  return history;
+}
+
+function renderFollowersChart(history) {
+  const canvas = document.getElementById('followerChart');
+  if (!canvas) return;
+  if (followerChartInst) followerChartInst.destroy();
+
+  if (history.length < 1) {
+    canvas.style.display = 'none';
+    const ph = document.getElementById('followerChartPlaceholder');
+    if (ph) ph.style.display = 'flex';
+    return;
+  }
+
+  canvas.style.display = 'block';
+  const ph = document.getElementById('followerChartPlaceholder');
+  if (ph) ph.style.display = 'none';
+
+  const minVal = Math.min(...history.map(d => d.count));
+  const maxVal = Math.max(...history.map(d => d.count));
+  const pad    = Math.max(2, Math.round((maxVal - minVal) * 0.15)) || 3;
+
+  const first  = history[0];
+  const latest = history[history.length - 1];
+  const delta  = latest.count - first.count;
+
+  const badge = document.getElementById('followerDelta');
+  if (badge) {
+    const sign = delta >= 0 ? '+' : '';
+    badge.textContent = sign + delta + ' seit ' + new Date(first.ts).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    badge.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  const postsByDay = {};
+  (allPosts || []).forEach(p => {
+    if (!p.created_at) return;
+    const day = new Date(p.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    postsByDay[day] = (postsByDay[day] || 0) + (p.public_metrics?.impression_count || 0);
+  });
+  const chartLabels   = history.map(d => new Date(d.ts).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }));
+  const postImpData   = chartLabels.map(l => postsByDay[l] || 0);
+  const hasPostData   = postImpData.some(v => v > 0);
+
+  followerChartInst = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets: [
+        {
+          data:             history.map(d => d.count),
+          borderColor:      '#C96B45',
+          backgroundColor:  'rgba(201,107,69,0.08)',
+          fill:             true,
+          tension:          0.35,
+          pointRadius:      history.length > 30 ? 2 : 4,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#C96B45',
+          borderWidth: 2,
+          yAxisID: 'y',
+          order: 1,
+        },
+        {
+          type:            'bar',
+          data:            postImpData,
+          backgroundColor: 'rgba(90,85,80,0.30)',
+          borderColor:     'rgba(90,85,80,0.5)',
+          borderWidth:     1,
+          borderRadius:    2,
+          yAxisID:         'y2',
+          order:           2,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 0) return '  ' + fmt(ctx.raw) + ' Follower';
+              return ctx.raw > 0 ? '  ' + fmt(ctx.raw) + ' Imp. (Posts)' : null;
+            },
+          },
+          backgroundColor: 'rgba(36,34,32,0.97)',
+          borderColor:     'rgba(54,51,48,0.8)',
+          borderWidth: 1,
+          titleColor: '#EDE9E3',
+          bodyColor:  '#8A847E',
+          padding: 10,
+          filter: item => item.formattedValue !== '0' && item.formattedValue !== null,
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: 10 }, maxRotation: 30, color: 'rgba(138,132,126,0.9)', maxTicksLimit: 10 },
+          grid:  { display: false }
+        },
+        y: {
+          min:   minVal - pad,
+          max:   maxVal + pad,
+          ticks: { font: { size: 10 }, callback: v => fmt(v), color: 'rgba(138,132,126,0.9)' },
+          grid:  { color: 'rgba(54,51,48,0.8)' }
+        },
+        y2: {
+          position: 'right',
+          display:  hasPostData,
+          ticks: {
+            font: { size: 9 },
+            color: 'rgba(90,85,80,0.8)',
+            callback: v => v >= 1000 ? (v/1000).toFixed(0) + 'k' : v,
+          },
+          grid: { display: false },
+        }
+      }
+    }
+  });
+}
+
+// ── Post renderers ───────────────────────────────────────────
+function renderPostCard(post, maxImp, split) {
+  const m     = post.public_metrics;
+  const reply = isReply(post);
+  const er    = engagementRate(post);
+  const barW  = Math.round((m.impression_count / maxImp) * 100);
+
+  if (split) {
+    const mbar = (val, max) => {
+      const w = max > 0 ? Math.round((val / max) * 100) : 0;
+      return `<div class="mbar"><div class="mbar-fill" style="width:${w}%"></div></div>`;
+    };
+    const maxLikes = Math.max(...displayedPosts.map(p => p.public_metrics.like_count), 1);
+    const maxRT    = Math.max(...displayedPosts.map(p => p.public_metrics.retweet_count), 1);
+    const maxRep   = Math.max(...displayedPosts.map(p => p.public_metrics.reply_count), 1);
+
+    return `
+      <a class="post-card split ${reply ? 'reply' : ''}" href="https://x.com/${ACCOUNTS[activeAccKey].username}/status/${post.id}" target="_blank" rel="noopener">
+        <div class="split-left">
+          ${reply ? '<div class="badge-reply">↩ Reply</div>' : ''}
+          <div class="post-text">${post.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+          <div class="post-meta">${timeAgo(post.created_at)} ago${engagementPill(er)}</div>
+          <div class="impressions-bar"><div class="impressions-bar-fill" style="width:${barW}%"></div></div>
+        </div>
+        <div class="split-right">
+          <div class="metric-line"><span class="icon">👁</span><span class="lbl">Imp.</span>${mbar(m.impression_count, maxImp)}<span class="val">${fmt(m.impression_count)}${orgImpHtml(post)}</span></div>
+          <div class="metric-line"><span class="icon">❤️</span><span class="lbl">Likes</span>${mbar(m.like_count, maxLikes)}<span class="val">${fmt(m.like_count)}</span></div>
+          <div class="metric-line"><span class="icon">🔁</span><span class="lbl">RT</span>${mbar(m.retweet_count, maxRT)}<span class="val">${fmt(m.retweet_count)}</span></div>
+          <div class="metric-line"><span class="icon">💬</span><span class="lbl">Rep.</span>${mbar(m.reply_count, maxRep)}<span class="val">${fmt(m.reply_count)}</span></div>
+          <div class="metric-line"><span class="icon">🔖</span><span class="lbl">Bkm.</span><span></span><span class="val">${fmt(m.bookmark_count)}</span></div>
+        </div>
+      </a>`;
+  }
+
+  return `
+    <a class="post-card ${reply ? 'reply' : ''}" href="https://x.com/${ACCOUNTS[activeAccKey].username}/status/${post.id}" target="_blank" rel="noopener">
+      ${reply ? '<div class="badge-reply">↩ Reply</div>' : ''}
+      <div class="post-text">${post.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div class="post-meta">${timeAgo(post.created_at)} ago${engagementPill(er)}</div>
+      <div class="metrics-row">
+        <div class="metric impressions"><span class="icon">👁</span><span class="num">${fmt(m.impression_count)}${orgImpHtml(post)}</span></div>
+        <div class="metric"><span class="icon">❤️</span><span class="num">${fmt(m.like_count)}</span></div>
+        <div class="metric"><span class="icon">🔁</span><span class="num">${fmt(m.retweet_count)}</span></div>
+        <div class="metric"><span class="icon">💬</span><span class="num">${fmt(m.reply_count)}</span></div>
+        <div class="metric"><span class="icon">🔖</span><span class="num">${fmt(m.bookmark_count)}</span></div>
+      </div>
+      <div class="impressions-bar"><div class="impressions-bar-fill" style="width:${barW}%"></div></div>
+    </a>`;
+}
+
+function renderPostsTable(posts) {
+  const sa = (col) => sortMode === col ? 'sort-active' : '';
+  const head = `
+    <div class="table-head">
+      <span>Post</span>
+      <span class="${sa('impressions')}">Imp.</span>
+      <span class="${sa('likes')}">Likes</span>
+      <span class="${sa('retweets')}">RT</span>
+      <span class="${sa('date')}">Rep.</span>
+      <span class="${sa('er')}">ER %</span>
+    </div>`;
+  const rows = posts.map(post => {
+    const m   = post.public_metrics;
+    const er  = engagementRate(post).toFixed(2);
+    const rep = isReply(post);
+    return `
+      <a class="table-row ${rep ? 'reply-row' : ''}" href="https://x.com/${ACCOUNTS[activeAccKey].username}/status/${post.id}" target="_blank" rel="noopener">
+        <div class="tcell-text">${post.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        <div class="tcell accent">${fmt(m.impression_count)}${orgImpHtml(post)}</div>
+        <div class="tcell">${fmt(m.like_count)}</div>
+        <div class="tcell">${fmt(m.retweet_count)}</div>
+        <div class="tcell">${fmt(m.reply_count)}</div>
+        <div class="tcell">${er}%</div>
+      </a>`;
+  }).join('');
+  return `<div class="posts-table">${head}${rows}</div>`;
+}
+
+window.exportCSV = function() {
+  const posts = displayedPosts;
+  const escape = v => '"' + String(v).replace(/"/g, '""').replace(/\n/g, ' ') + '"';
+  const header = ['Date','URL','Text','Impressions','Likes','Retweets','Replies','Bookmarks','ER%'].join(',');
+  const rows = posts.map(p => {
+    const m  = p.public_metrics;
+    const er = engagementRate(p).toFixed(4);
+    const dt = p.created_at ? new Date(p.created_at).toISOString().slice(0,10) : '';
+    const url = `https://x.com/${ACCOUNTS[activeAccKey].username}/status/${p.id}`;
+    return [dt, url, escape(p.text), m.impression_count, m.like_count, m.retweet_count, m.reply_count, m.bookmark_count||0, er].join(',');
+  });
+  const csv  = [header, ...rows].join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'x-posts-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+// ── Avatar ───────────────────────────────────────────────────
+function avatarHtml(userInfo) {
+  const initials = (userInfo.name || userInfo.username || '?').split(' ').map(w => w[0]).slice(0, 2).join('');
+  const cached   = localStorage.getItem(AVATAR_KEY) || '';
+  const imgUrl   = cached || (userInfo.profile_image_url || '').replace('_normal', '_bigger');
+  if (imgUrl) return `<img class="avatar" src="${imgUrl}" alt="${initials}" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="avatar-fallback" style="display:none">${initials}</div>`;
+  return `<div class="avatar-fallback">${initials}</div>`;
+}
+
+// ── Render ───────────────────────────────────────────────────
+function renderApp(userInfo) {
+  const posts      = displayedPosts;
+  const maxImp     = Math.max(...allPosts.map(p => p.public_metrics.impression_count), 1);
+  const totalImp   = totalImpressions();
+  const origPosts  = allPosts.filter(p => !isReply(p) && !isRetweet(p));
+  const avgLikes   = origPosts.length
+    ? Math.round(origPosts.reduce((s, p) => s + p.public_metrics.like_count, 0) / origPosts.length) : 0;
+  const avgER      = origPosts.length
+    ? (origPosts.reduce((s, p) => s + engagementRate(p), 0) / origPosts.length).toFixed(2) : '0';
+
+  const erFilterHtml = `
+    <select class="sort-select" onchange="setMinImpER(+this.value)">
+      <option value="0"    ${minImpER===0    ? 'selected' : ''}>Alle Imp.</option>
+      <option value="50"   ${minImpER===50   ? 'selected' : ''}>≥ 50 Imp.</option>
+      <option value="100"  ${minImpER===100  ? 'selected' : ''}>≥ 100 Imp.</option>
+      <option value="500"  ${minImpER===500  ? 'selected' : ''}>≥ 500 Imp.</option>
+      <option value="1000" ${minImpER===1000 ? 'selected' : ''}>≥ 1K Imp.</option>
+    </select>`;
+
+  function cmBtn(m, label) {
+    return `<button data-chart-metric="${m}" class="${chartMetric===m ? 'active' : ''}" onclick="setChartMetric('${m}')">${label}</button>`;
+  }
+
+  document.getElementById('app').innerHTML = `
+    <div class="header">
+      ${avatarHtml(userInfo)}
+      <div class="header-text">
+        <h1>${userInfo.name || userInfo.username || ''}</h1>
+        <span>@${userInfo.username} · ${(() => { const c = userInfo.public_metrics?.followers_count ?? loadFollowerHistory().slice(-1)[0]?.count; return c != null ? fmt(c) + ' Followers' : ''; })()}</span>
+      </div>
+      <div class="acc-switcher">
+        ${Object.entries(ACCOUNTS).map(([k, a]) => `<button class="acc-btn${k === activeAccKey ? ' active' : ''}" onclick="switchAccount('${k}')">${a.displayName}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="label">Impressions</div>
+        <div class="value">${fmt(totalImp)}</div>
+        <div class="sub">${origPosts.length} Orig.-Posts</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Ø Likes</div>
+        <div class="value">${fmt(avgLikes)}</div>
+        <div class="sub">pro Post</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Ø Engagement</div>
+        <div class="value">${avgER}%</div>
+        <div class="sub">pro Post</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Follower</div>
+        <div class="value">${(() => { const c = userInfo.public_metrics?.followers_count ?? loadFollowerHistory().slice(-1)[0]?.count; return c != null ? fmt(c) : '–'; })()}</div>
+        <div class="sub">${userInfo.public_metrics?.tweet_count != null ? fmt(userInfo.public_metrics.tweet_count) + ' Tweets gesamt' : ''}</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title" id="topPostsLabel">Top ${window.innerWidth >= 820 ? 15 : 10}</span>
+        <div class="chart-metric-group">
+          ${cmBtn('impressions', 'Imp.')}
+          ${cmBtn('likes',       'Likes')}
+          ${cmBtn('replies',     'Replies')}
+          ${cmBtn('er',          'ER %')}
+        </div>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="impChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card" style="height:160px">
+      <div class="chart-header">
+        <span class="chart-title">Follower-Entwicklung</span>
+        <span id="followerDelta" style="font-size:11px;font-weight:600"></span>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="followerChart"></canvas>
+        <div id="followerChartPlaceholder" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;font-size:12px;color:var(--muted);text-align:center;padding:8px">
+          Erster Snapshot gespeichert —<br>morgen erscheint die Kurve
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="toggle-group">
+        <button class="${filterMode==='all'     ? 'active' : ''}" onclick="setFilter('all')">Alle</button>
+        <button class="${filterMode==='posts'   ? 'active' : ''}" onclick="setFilter('posts')">Posts</button>
+        <button class="${filterMode==='replies' ? 'active' : ''}" onclick="setFilter('replies')">Replies</button>
+      </div>
+      <select class="sort-select" onchange="setSort(this.value)">
+        <option value="date"        ${sortMode==='date'        ? 'selected' : ''}>↓ Datum</option>
+        <option value="impressions" ${sortMode==='impressions' ? 'selected' : ''}>↓ Impressions</option>
+        <option value="er"          ${sortMode==='er'          ? 'selected' : ''}>↓ Engagement Rate</option>
+        <option value="likes"       ${sortMode==='likes'       ? 'selected' : ''}>↓ Likes</option>
+        <option value="replies"     ${sortMode==='replies'     ? 'selected' : ''}>↓ Replies</option>
+        <option value="retweets"    ${sortMode==='retweets'    ? 'selected' : ''}>↓ Retweets</option>
+      </select>
+      ${erFilterHtml}
+      <button class="sort-select" id="refreshBtn" onclick="fullRefresh()" style="margin-left:auto;display:flex;align-items:center;justify-content:center;width:32px;padding:0" title="Alle Posts neu laden"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+      <div class="toggle-group wide-only">
+        <button class="${wideViewMode==='split' ? 'active' : ''}" onclick="setWideView('split')">⊞ Split</button>
+        <button class="${wideViewMode==='table' ? 'active' : ''}" onclick="setWideView('table')">☰ Tabelle</button>
+      </div>
+      ${wideViewMode === 'table' ? `<button class="sort-select wide-only" onclick="exportCSV()" style="cursor:pointer;font-size:11px;padding:4px 10px">⬇ CSV</button>` : ''}
+    </div>
+
+    ${(()=>{
+      const isWide  = window.innerWidth >= 820;
+      const effView = isWide ? wideViewMode : 'cards';
+      if (effView === 'table') {
+        return renderPostsTable(posts)
+          + (hasMore ? '<div class="load-more-wrap" style="margin-top:8px"><button class="load-more" style="width:100%" onclick="loadMore()">Mehr laden</button></div>' : '');
+      }
+      const isSplit = effView === 'split';
+      return `<div class="posts-list ${isSplit ? 'single-col' : ''}">
+        ${posts.map(post => renderPostCard(post, maxImp, isSplit)).join('')}
+        ${hasMore ? '<div class="load-more-wrap" style="margin-top:4px"><button class="load-more" style="width:100%" onclick="loadMore()">Mehr laden</button></div>' : ''}
+      </div>`;
+    })()}
+  `;
+
+  renderChart();
+  renderFollowersChart(loadFollowerHistory());
+}
+
+// ── Event handlers ───────────────────────────────────────────
+window.setFilter = function(mode) {
+  filterMode = mode; localStorage.setItem('x_filter', mode);
+  rebuildDisplay(); renderApp(window._userInfo);
+};
+window.setSort = function(mode) {
+  sortMode = mode; localStorage.setItem('x_sort', mode);
+  rebuildDisplay(); renderApp(window._userInfo);
+};
+window.setMinImpER = function(val) {
+  minImpER = val; localStorage.setItem('x_min_imp_er', val);
+  rebuildDisplay(); renderApp(window._userInfo);
+};
+window.setWideView = function(mode) {
+  wideViewMode = mode; localStorage.setItem('x_wide_view', mode);
+  renderApp(window._userInfo);
+};
+window.setChartMetric = function(metric) {
+  chartMetric = metric; localStorage.setItem('x_chart_metric', metric);
+  document.querySelectorAll('[data-chart-metric]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.chartMetric === metric);
+  });
+  renderChart();
+};
+
+// ── Load more ────────────────────────────────────────────────
+window.loadMore = async function() {
+  if (!nextToken) return;
+  const btn = document.querySelector('.load-more');
+  if (btn) btn.textContent = 'Lade…';
+  const isDateSort = sortMode === 'date';
+  const batchSize  = isDateSort ? MAX_PER_PAGE_DATE : MAX_PER_PAGE_OTHER;
+  try {
+    const res      = await window.cowork.callMcpTool(xmcp('get_timeline'),
+      { user_id: USER_ID, max_results: batchSize, next_token: nextToken });
+    const timeline = unwrapTimeline(res);
+    const data     = timeline.data || [];
+    const prevLen  = allPosts.length;
+
+    const cache = loadCache();
+    mergePosts(cache, data);
+    nextToken = timeline.meta?.next_token || null;
+    hasMore   = !!nextToken;
+    cache.last_next_token = nextToken;
+    saveCache(cache);
+    allPosts = cacheToArray(cache);
+
+    const added = allPosts.length - prevLen;
+    if (isDateSort) {
+      let nv = data.filter(p => !isRetweet(p));
+      if (filterMode === 'posts')   nv = nv.filter(p => !isReply(p));
+      if (filterMode === 'replies') nv = nv.filter(p =>  isReply(p));
+      nv.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      displayedPosts = displayedPosts.concat(nv);
+    } else {
+      rebuildDisplay();
+      if (added > 0) showToast(added + ' neue Posts · neu sortiert');
+    }
+    renderApp(window._userInfo);
+  } catch(e) {
+    if (btn) btn.textContent = 'Fehler';
+  }
+};
+
+// ── Full Refresh ─────────────────────────────────────────────
+window.fullRefresh = async function() {
+  const btn = document.getElementById('refreshBtn');
+  const svgIcon = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    try { localStorage.removeItem(USER_CACHE_KEY); } catch(_) {}
+    const cache = loadCache();
+    let token = null, page = 0;
+    do {
+      page++;
+      if (btn) btn.textContent = `${page}…`;
+      const params = { user_id: USER_ID, max_results: MAX_PER_PAGE_OTHER };
+      if (token) params.next_token = token;
+      const res      = await window.cowork.callMcpTool(xmcp('get_timeline'), params);
+      const timeline = unwrapTimeline(res);
+      mergePosts(cache, timeline.data || []);
+      token = timeline.meta?.next_token || null;
+    } while (token);
+
+    cache.last_refresh_at      = Date.now();
+    cache.last_full_refresh_at = Date.now();
+    cache.last_next_token      = null;
+    saveCache(cache);
+
+    allPosts  = cacheToArray(cache);
+    nextToken = null;
+    hasMore   = false;
+    rebuildDisplay();
+    renderApp(window._userInfo);
+    showToast(allPosts.length + ' Posts geladen · Cache aktualisiert');
+  } catch(e) {
+    showToast('Fehler beim Full Refresh');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = svgIcon; }
+  }
+};
+
+// ── MCP parsing ──────────────────────────────────────────────
+function parseMcp(res) {
+  if (res?.content?.[0]?.text) {
+    try { return JSON.parse(res.content[0].text); } catch(_) {}
+  }
+  if (res?.content?.[0]?.json) return res.content[0].json;
+  return res;
+}
+
+function _deepFind(obj, key, depth) {
+  if (!obj || typeof obj !== 'object' || depth > 5) return null;
+  if (Array.isArray(obj)) {
+    for (const item of obj) { const r = _deepFind(item, key, depth+1); if (r) return r; }
+    return null;
+  }
+  if (obj[key] !== undefined) return obj;
+  for (const k of Object.keys(obj)) {
+    const r = _deepFind(obj[k], key, depth+1);
+    if (r) return r;
+  }
+  return null;
+}
+
+function unwrapUser(res) {
+  const d = parseMcp(res);
+  const found = _deepFind(d, 'username', 0);
+  if (found) return found;
+  window._debugUserRes = JSON.stringify(d).slice(0, 400);
+  return null;
+}
+function unwrapTimeline(res) {
+  const d = parseMcp(res);
+  const inner = d?.data || d;
+  const tweets = inner?.data || [];
+  const polls = inner?.includes?.polls || [];
+  if (polls.length) {
+    const pollMap = {};
+    for (const poll of polls) {
+      pollMap[poll.id] = poll.options.reduce((s, o) => s + (o.votes || 0), 0);
+    }
+    for (const t of tweets) {
+      const pollId = t.attachments?.poll_ids?.[0];
+      if (pollId != null && pollMap[pollId] != null) t._poll_votes = pollMap[pollId];
+    }
+  }
+  return { data: tweets, meta: inner?.meta || {} };
+}
+
+// ── Init ─────────────────────────────────────────────────────
+async function init() {
+  try {
+    const cache       = loadCache();
+    const cachedPosts = cacheToArray(cache);
+    const hoursSince  = (Date.now() - (cache.last_refresh_at || 0)) / 3600000;
+
+    let userInfo = null;
+    const userCached = (() => { try { return JSON.parse(localStorage.getItem(USER_CACHE_KEY) || 'null'); } catch(_) { return null; } })();
+    const userCacheAge = userCached ? Date.now() - (userCached.ts || 0) : Infinity;
+
+    if (userCached?.data && userCacheAge < USER_CACHE_TTL) {
+      userInfo = userCached.data;
+    } else {
+      try {
+        const userRes = await window.cowork.callMcpTool(xmcp('get_user'), { username: ACCOUNTS[activeAccKey].username });
+        if (userRes?.isError) throw new Error(userRes?.content?.[0]?.text || 'API error');
+        userInfo = unwrapUser(userRes);
+        if (!userInfo) throw new Error('Kein username-Feld im Response');
+        if (userInfo.id) USER_ID = userInfo.id;
+        try { localStorage.setItem(USER_CACHE_KEY, JSON.stringify({ data: userInfo, ts: Date.now() })); } catch(_) {}
+        if (userInfo.profile_image_url) {
+          try {
+            const imgUrl = userInfo.profile_image_url.replace('_normal', '_bigger');
+            const imgRes = await window.cowork.callMcpTool(xmcp('get_image_as_base64'), { url: imgUrl });
+            const imgData = parseMcp(imgRes);
+            const dataUrl = imgData?.dataUrl || imgData?.data?.dataUrl;
+            if (dataUrl) localStorage.setItem(AVATAR_KEY, dataUrl);
+          } catch(_) {
+            try { localStorage.setItem(AVATAR_KEY, userInfo.profile_image_url); } catch(_) {}
+          }
+        }
+      } catch(apiErr) {
+        const _acc = ACCOUNTS[activeAccKey]; userInfo = userCached?.data || { username: _acc.username, name: _acc.username, public_metrics: null };
+        const apiCode = apiErr.message?.match(/HTTP (\d+)/)?.[1] || '';
+        showToast(`X-API${apiCode ? ' '+apiCode : ''} · zeige gespeicherte Daten`, 5000);
+      }
+    }
+    window._userInfo = userInfo;
+
+    if (userInfo.public_metrics?.followers_count != null) {
+      recordFollowerSnapshot(userInfo.public_metrics.followers_count);
+    }
+
+    if (cachedPosts.length > 0) {
+      allPosts  = cachedPosts;
+      nextToken = cache.last_next_token || null;
+      hasMore   = !!nextToken;
+      rebuildDisplay();
+      renderApp(userInfo);
+    } else {
+      document.getElementById('app').innerHTML = '<div class="loading">Lade Posts…</div>';
+    }
+
+    let pagesToFetch = 0;
+    if      (cachedPosts.length === 0) pagesToFetch = 1;
+    else if (hoursSince < 6)           pagesToFetch = 0;
+    else if (hoursSince < 48)          pagesToFetch = 1;
+    else                               pagesToFetch = 2;
+
+    if (pagesToFetch > 0) {
+      try {
+        let token = null;
+        for (let i = 0; i < pagesToFetch; i++) {
+          const params = { user_id: USER_ID, max_results: MAX_PER_PAGE_DATE };
+          if (token) params.next_token = token;
+          const res      = await window.cowork.callMcpTool(xmcp('get_timeline'), params);
+          if (res?.isError) throw new Error(res?.content?.[0]?.text || 'Timeline-Fehler');
+          const timeline = unwrapTimeline(res);
+          mergePosts(cache, timeline.data || []);
+          token = timeline.meta?.next_token || null;
+          if (!token) break;
+        }
+        nextToken             = token;
+        hasMore               = !!token;
+        cache.last_refresh_at = Date.now();
+        cache.last_next_token = token;
+        saveCache(cache);
+        allPosts = cacheToArray(cache);
+        rebuildDisplay();
+      } catch(tlErr) {
+        const tlCode = tlErr.message?.match(/HTTP (\d+)/)?.[1] || '';
+        showToast(`X-API${tlCode ? ' '+tlCode : ''} · zeige gespeicherte Daten`, 5000);
+        if (allPosts.length === 0 && cachedPosts.length > 0) {
+          allPosts = cachedPosts; rebuildDisplay();
+        }
+      }
+      renderApp(userInfo);
+    }
+  } catch(e) {
+    document.getElementById('app').innerHTML = `<div class="error">Fehler beim Laden: ${e.message}</div>`;
+  }
+}
+
+const _mq = window.matchMedia('(min-width: 820px)');
+_mq.addEventListener('change', () => {
+  if (window._userInfo) renderApp(window._userInfo);
+});
+
+init();
+</script>
+</body>
+</html>
