@@ -23,7 +23,7 @@ export function validateImageUrls(imageUrls: string[] | undefined): string | nul
   return null;
 }
 
-// Full ISO 8601 datetime with explicit timezone — mirrors what the API examples use.
+// Full ISO 8601 datetime with explicit timezone, mirroring what the API examples use.
 const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
 
 export function validateIsoDate(value: string | undefined, field: string): string | null {
@@ -70,7 +70,7 @@ const textField = z
   .string()
   .min(1)
   .max(10_000)
-  .describe("The post body, 1–10,000 characters. Must not contain URLs — ClimbX rejects link posts.");
+  .describe("The post body, 1-10,000 characters. Must not contain URLs; ClimbX rejects link posts.");
 
 const imageUrlsField = z
   .array(z.string())
@@ -150,7 +150,7 @@ export function registerTools(server: McpServer): void {
         "List the account's recent published posts with their latest metrics snapshot " +
         "(impressions, likes, replies, retweets, quote tweets) plus format label and reply flag.",
       inputSchema: {
-        limit: z.number().int().min(1).max(100).optional().describe("How many posts to return, 1–100. Default 30."),
+        limit: z.number().int().min(1).max(100).optional().describe("How many posts to return, 1-100. Default 30."),
       },
     },
     run(async (c, args: { limit?: number }) => ok(await c.get("/posts", { limit: args.limit }))),
@@ -225,7 +225,7 @@ export function registerTools(server: McpServer): void {
       title: "Cancel a scheduled post",
       description:
         "Cancel a still-pending scheduled post so it won't publish. " +
-        "Note: cancelling does NOT refund the daily-cap slot — the post counted when it was created.",
+        "Note: cancelling does NOT refund the daily-cap slot; the post counted when it was created.",
       inputSchema: { id: z.string().describe("The scheduled post id.") },
     },
     run(async (c, args: { id: string }) => ok(await c.delete(`/schedule/${encodeURIComponent(args.id)}`))),
@@ -239,7 +239,7 @@ export function registerTools(server: McpServer): void {
         "Headline KPIs (posts published, impressions, average likes/replies, engagement rate) " +
         "plus a per-format breakdown over a lookback window. Replies are excluded.",
       inputSchema: {
-        days: z.number().int().min(1).max(90).optional().describe("Lookback window in days, 1–90. Default 30."),
+        days: z.number().int().min(1).max(90).optional().describe("Lookback window in days, 1-90. Default 30."),
       },
     },
     run(async (c, args: { days?: number }) => ok(await c.get("/analytics", { days: args.days }))),
@@ -306,7 +306,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Learnings history",
       description:
-        "The recorded timeline of the learnings set — one snapshot each time it was re-derived within the window. " +
+        "The recorded timeline of the learnings set: one snapshot each time it was re-derived within the window. " +
         "History accrues from when the feature shipped; there is no retroactive backfill.",
       inputSchema: windowFields,
     },

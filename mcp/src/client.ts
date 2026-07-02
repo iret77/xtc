@@ -65,7 +65,7 @@ export function validateBaseUrl(baseUrl: string, allowCustomHost = false): strin
   }
   if (!allowCustomHost && url.hostname !== "climbx.so" && !url.hostname.endsWith(".climbx.so")) {
     return (
-      `CLIMBX_BASE_URL points at ${url.hostname} — refusing to send the API key to a non-climbx.so host. ` +
+      `CLIMBX_BASE_URL points at ${url.hostname}; refusing to send the API key to a non-climbx.so host. ` +
       "Set CLIMBX_ALLOW_CUSTOM_BASE_URL=1 if this is intentional (dev/staging)."
     );
   }
@@ -172,7 +172,7 @@ export class ClimbxClient {
     let message = errBody.message ?? `${method} ${path} failed with HTTP ${res.status}`;
     if (!errBody.message && text) {
       // Non-JSON error body (proxy/HTML error page): keep a bounded snippet for diagnostics.
-      message += ` — response body (truncated): ${text.slice(0, ERROR_BODY_SNIPPET_LEN)}`;
+      message += `; response body (truncated): ${text.slice(0, ERROR_BODY_SNIPPET_LEN)}`;
     }
 
     if (code === "rate_limited" && retryable) {

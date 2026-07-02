@@ -5,7 +5,7 @@
  *   CLIMBX_API_KEY=climbx_sk_... npm run smoke            # read-only endpoints
  *   CLIMBX_API_KEY=climbx_sk_... npm run smoke -- --write # + schedule/cancel roundtrip
  *
- * WARNING: --write consumes one slot of the 5/day post cap permanently —
+ * WARNING: --write consumes one slot of the 5/day post cap permanently;
  * cancelling a scheduled post does not refund the slot.
  */
 import { ClimbxClient } from "../src/client.js";
@@ -55,7 +55,7 @@ if (writeMode) {
   let scheduledId: string | undefined;
   await check("POST /schedule", async () => {
     const res = (await client.post("/schedule", {
-      text: "climbx-mcp smoke test — will be cancelled immediately.",
+      text: "climbx-mcp smoke test, will be cancelled immediately.",
       scheduled_for: inOneYear,
     })) as { scheduled?: { id?: string } };
     scheduledId = res.scheduled?.id;
@@ -65,7 +65,7 @@ if (writeMode) {
     await check("DELETE /schedule/{id}", () => client.delete(`/schedule/${scheduledId}`));
   }
 } else {
-  console.log("\n(write endpoints skipped — pass --write to include them; costs a daily-cap slot)");
+  console.log("\n(write endpoints skipped; pass --write to include them, costs a daily-cap slot)");
 }
 
 console.log(failures === 0 ? "\nSmoke test passed." : `\nSmoke test finished with ${failures} failure(s).`);

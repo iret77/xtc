@@ -12,7 +12,7 @@ Installs the `mcp/` dependencies and activates the repo's git hooks (`core.hooks
 
 | Path | What it is |
 |---|---|
-| `mcp/` | `climbx-mcp` — MCP server for the ClimbX API. Self-contained npm package. |
+| `mcp/` | `climbx-mcp`: MCP server for the ClimbX API. Self-contained npm package. |
 | `reference/` | Read-only reference material. Not part of any build. |
 
 ## Working on the MCP server
@@ -21,14 +21,14 @@ Installs the `mcp/` dependencies and activates the repo's git hooks (`core.hooks
 cd mcp
 npm run build    # TypeScript → dist/
 npm test         # unit tests (mocked, no network)
-npm run smoke    # live read-only test against the real API — needs CLIMBX_API_KEY
+npm run smoke    # live read-only test against the real API (needs CLIMBX_API_KEY)
 ```
 
 `CLIMBX_API_KEY` is provided via environment variable only. Never commit keys, tokens, or `.env` files.
 
 ## Git workflow
 
-See [AGENTS.md](AGENTS.md) — the rules apply to humans as well:
+See [AGENTS.md](AGENTS.md), the rules apply to humans as well:
 
 - No direct pushes to `main`; every change goes through a feature branch and PR.
 - Commits land in worktrees, not in the main clone (enforced by `.hooks/pre-commit`).
