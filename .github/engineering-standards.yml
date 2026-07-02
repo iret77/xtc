@@ -1,0 +1,9 @@
+# Engineering-Standards-Status dieses Repos.
+# Single source of truth, gilt host- und agent-übergreifend.
+# Schema: siehe <org>/engineering-standards (byte5ai, iret77, high5-ventures).
+
+status: applied          # applied | exempt
+source: iret77/engineering-standards
+decided_on: 2026-07-02
+reviewed_on: 2026-07-02
+reason: ""               # optional

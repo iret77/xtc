@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+echo "Installing dependencies..."
+(cd mcp && npm install)
+
+echo "Configuring git hooks..."
+git config core.hooksPath .hooks
+
+echo "Done."

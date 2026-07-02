@@ -1,0 +1,3 @@
+# Session-local agent context — lives on disk, never in the repo.
+CLAUDE.md
+CLAUDE.local.md
