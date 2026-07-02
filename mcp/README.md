@@ -1,6 +1,6 @@
 # climbx-mcp
 
-An [MCP](https://modelcontextprotocol.io) server for the [ClimbX](https://climbx.so) API: publish and schedule X posts, read your analytics, voice profile, and learnings, and pull outlier posts from the inspiration feeds, all from any MCP client (Claude Desktop, Claude Code, Claude Cowork, and others).
+An [MCP](https://modelcontextprotocol.io) server for the [ClimbX](https://climbx.so) API: publish and schedule X posts, read your analytics, voice profile, and learnings, pull outlier posts from the inspiration feeds, and draft replies in your voice, all from any MCP client (Claude Desktop, Claude Code, Claude Cowork, and others).
 
 > **Community project.** Not affiliated with or endorsed by ClimbX. It wraps the official public API documented at [climbx.so/developers/docs](https://climbx.so/developers/docs).
 
