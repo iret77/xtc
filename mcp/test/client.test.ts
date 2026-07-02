@@ -156,7 +156,7 @@ describe("inspiration endpoints", () => {
 });
 
 describe("tool wiring", () => {
-  it("registers all 15 tools and routes them to the right endpoints", async () => {
+  it("registers all 16 tools and routes them to the right endpoints", async () => {
     const { registerTools } = await import("../src/tools.js");
     const calls: string[] = [];
     const fetchFn = vi.fn(async (url: any) => {
@@ -178,7 +178,7 @@ describe("tool wiring", () => {
       "cancel_scheduled", "get_analytics", "get_following_outliers", "get_format_performance",
       "get_inspiration_options", "get_learnings", "get_learnings_history", "get_niche_performance",
       "get_surprise_outliers", "get_voice_profile", "list_posts", "list_scheduled",
-      "publish_post", "reschedule_post", "schedule_post",
+      "publish_post", "reschedule_post", "schedule_post", "suggest_reply",
     ]);
 
     const res = await handlers.get("get_following_outliers")!({ handles: "@levelsio", limit: 5 });
@@ -215,6 +215,45 @@ describe("base-url guard in constructor", () => {
     expect(
       () => new ClimbxClient({ apiKey: "k", baseUrl: "https://evil.example/api/v1", allowCustomHost: true }),
     ).not.toThrow();
+  });
+});
+
+describe("suggest_reply", () => {
+  it("posts to engage/suggest-reply and strips a leading @ from the handle", async () => {
+    const { registerTools } = await import("../src/tools.js");
+    let captured: { url?: string; body?: any } = {};
+    const fetchFn = vi.fn(async (url: any, init: any) => {
+      captured = { url: String(url), body: JSON.parse(init.body) };
+      return jsonResponse(200, { reply: "sounds hard, what pulled you in?" });
+    });
+    const handlers = new Map<string, (args: any) => Promise<any>>();
+    registerTools(
+      { registerTool: (n: string, _m: unknown, h: any) => handlers.set(n, h) } as any,
+      () => new ClimbxClient({ apiKey: "climbx_sk_test", fetchFn: fetchFn as unknown as typeof fetch }),
+    );
+    const res = await handlers.get("suggest_reply")!({ text: "shipped my first saas", author_handle: "@levelsio" });
+    expect(res.isError).toBeUndefined();
+    expect(captured.url).toContain("/api/v1/engage/suggest-reply");
+    expect(captured.body).toEqual({ text: "shipped my first saas", authorHandle: "levelsio" });
+  });
+
+  it("maps locked and read_only_key with actionable hints", async () => {
+    const lockedFetch = vi.fn(async () => jsonResponse(403, { error: "locked", message: "Not unlocked yet." }));
+    const { client: c1 } = makeClient(lockedFetch as unknown as typeof fetch);
+    const e1 = await c1.post("/engage/suggest-reply", { text: "x" }).catch((e) => e);
+    expect(e1.hint).toContain("written enough replies");
+
+    const roFetch = vi.fn(async () => jsonResponse(403, { error: "read_only_key", message: "Read-only." }));
+    const { client: c2 } = makeClient(roFetch as unknown as typeof fetch);
+    const e2 = await c2.post("/posts", { text: "x" }).catch((e) => e);
+    expect(e2.hint).toContain("read & write key");
+
+    const creditFetch = vi.fn(async () =>
+      jsonResponse(402, { error: "insufficient_credits", message: "Pool empty." }),
+    );
+    const { client: c3 } = makeClient(creditFetch as unknown as typeof fetch);
+    const e3 = await c3.post("/engage/suggest-reply", { text: "x" }).catch((e) => e);
+    expect(e3.hint).toContain("refills daily");
   });
 });
 

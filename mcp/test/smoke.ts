@@ -25,7 +25,7 @@ const client = new ClimbxClient({
 
 function preview(data: unknown): string {
   const json = JSON.stringify(data);
-  return json.length > 200 ? json.slice(0, 200) + "…" : json;
+  return json.length > 200 ? json.slice(0, 200) + "..." : json;
 }
 
 async function step(name: string, fn: () => Promise<unknown>): Promise<boolean> {
