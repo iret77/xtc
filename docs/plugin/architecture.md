@@ -96,6 +96,15 @@ The API key model for multiple accounts is unclear upstream. v1.0 is single-acco
 
 Everything in the repo and plugin (docs, skills, UI text) is English; the repo is public and linked from ClimbX's official docs. Draft content follows `draft_language` in the user config (default `auto`: match the source outlier's language).
 
+## D9: Audience: every ClimbX API user
+
+The plugin ships in this public repo, which ClimbX links from its official docs. It is a product for any ClimbX customer with an API key, not a personal setup:
+
+- Fully functional standalone. Complementary user-installed skills (post optimizer, brand voice) are detected generically and applied when present, never required and never referenced by product name.
+- Nothing assumes the maintainers' environment: no host-specific tools in docs or skills, secure key entry is described generically, all user-facing text is English.
+- All per-user variance (voice, learnings, formats, timezone, posting schedule, tracked creators, plan/scope, credits/lock state) comes from the user's own API responses at runtime. Never bake in values observed on a maintainer account.
+- Portability: resolve the home directory at runtime (os.homedir() in Node; never rely on shell tilde expansion in paths). Target Cowork first, but do not break plain Claude Code usage of the same plugin.
+
 ## Work order
 
 | Session | Issues | Notes |
