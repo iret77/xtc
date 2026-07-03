@@ -38,9 +38,12 @@ The server reads its configuration from environment variables:
 
 | Variable | Required | Description |
 |---|---|---|
-| `CLIMBX_API_KEY` | yes | Your ClimbX API key (`climbx_sk_...`). Never commit it anywhere. |
+| `CLIMBX_API_KEY` | one key source | Your ClimbX API key (`climbx_sk_...`) inline. Never commit it anywhere. |
+| `CLIMBX_API_KEY_FILE` | one key source | Path to a file containing the API key instead of passing it inline. The file is read and trimmed, so the key stays out of every config and process listing. |
 | `CLIMBX_BASE_URL` | no | API base URL. Defaults to `https://climbx.so/api/v1`. Must be an https `climbx.so` URL unless `CLIMBX_ALLOW_CUSTOM_BASE_URL=1` is set. |
 | `CLIMBX_ALLOW_CUSTOM_BASE_URL` | no | Set to `1` to allow a non-climbx.so base URL (dev/staging). Off by default so the key can't be sent to an unexpected host. |
+
+The key is resolved in this order: `CLIMBX_API_KEY`, then `CLIMBX_API_KEY_FILE`, then the default key file at `~/.climbx/api_key` (mode 0600) if it exists. Providing the key through a file (or the default path) keeps it out of your shell history and any config file.
 
 ### Claude Code
 

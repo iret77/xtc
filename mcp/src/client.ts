@@ -1,4 +1,46 @@
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
 export const DEFAULT_BASE_URL = "https://climbx.so/api/v1";
+
+/**
+ * Default key-file location. Resolved from the OS home directory at call time
+ * (never a literal '~': Node does not expand shell tildes in paths).
+ */
+export function defaultKeyFilePath(): string {
+  return join(homedir(), ".climbx", "api_key");
+}
+
+/** Reads a key file, trimming surrounding whitespace. Returns null if missing, unreadable, or empty. */
+function readKeyFile(path: string): string | null {
+  try {
+    const key = readFileSync(path, "utf8").trim();
+    return key.length > 0 ? key : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolves the ClimbX API key from, in order of precedence:
+ *   1. the CLIMBX_API_KEY environment variable
+ *   2. the file named by CLIMBX_API_KEY_FILE
+ *   3. the default key file at ~/.climbx/api_key
+ * Returns null when no source yields a non-empty key (callers show the setup hint).
+ */
+export function resolveApiKey(): string | null {
+  const envKey = process.env.CLIMBX_API_KEY?.trim();
+  if (envKey) return envKey;
+
+  const fileEnv = process.env.CLIMBX_API_KEY_FILE;
+  if (fileEnv) {
+    const fromFile = readKeyFile(fileEnv);
+    if (fromFile) return fromFile;
+  }
+
+  return readKeyFile(defaultKeyFilePath());
+}
 
 /** Actionable hints per ClimbX error code (see https://climbx.so/developers/docs). */
 const ERROR_HINTS: Record<string, string> = {

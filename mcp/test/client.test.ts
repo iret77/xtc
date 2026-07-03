@@ -1,5 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
-import { ClimbxClient, ClimbxError, validateBaseUrl } from "../src/client.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  ClimbxClient,
+  ClimbxError,
+  defaultKeyFilePath,
+  resolveApiKey,
+  validateBaseUrl,
+} from "../src/client.js";
 import { findUrlInText, validateImageUrls, validateIsoDate } from "../src/tools.js";
 
 function jsonResponse(status: number, body: unknown, headers: Record<string, string> = {}): Response {
@@ -278,5 +287,76 @@ describe("error diagnostics", () => {
     expect(err.code).toBe("timeout");
     expect(err.message).toContain("timed out");
     expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("resolveApiKey", () => {
+  // Every test controls all three sources so the runner's real ~/.climbx/api_key never leaks in.
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  function tempHome(): string {
+    const home = mkdtempSync(join(tmpdir(), "climbx-home-"));
+    vi.stubEnv("HOME", home);
+    vi.stubEnv("USERPROFILE", home); // os.homedir() reads USERPROFILE on Windows
+    return home;
+  }
+
+  function writeKeyFile(dir: string, name: string, contents: string): string {
+    const path = join(dir, name);
+    writeFileSync(path, contents);
+    return path;
+  }
+
+  it("prefers the CLIMBX_API_KEY env var over a key file", () => {
+    const dir = tempHome();
+    const file = writeKeyFile(dir, "from-file", "climbx_sk_file");
+    vi.stubEnv("CLIMBX_API_KEY", "climbx_sk_env");
+    vi.stubEnv("CLIMBX_API_KEY_FILE", file);
+    expect(resolveApiKey()).toBe("climbx_sk_env");
+  });
+
+  it("prefers CLIMBX_API_KEY_FILE over the default key file", () => {
+    const home = tempHome();
+    mkdirSync(join(home, ".climbx"));
+    writeKeyFile(join(home, ".climbx"), "api_key", "climbx_sk_default");
+    const file = writeKeyFile(home, "explicit-key", "climbx_sk_explicit");
+    vi.stubEnv("CLIMBX_API_KEY", undefined);
+    vi.stubEnv("CLIMBX_API_KEY_FILE", file);
+    expect(resolveApiKey()).toBe("climbx_sk_explicit");
+  });
+
+  it("falls back to the default ~/.climbx/api_key resolved via os.homedir()", () => {
+    const home = tempHome();
+    mkdirSync(join(home, ".climbx"));
+    writeKeyFile(join(home, ".climbx"), "api_key", "climbx_sk_default");
+    vi.stubEnv("CLIMBX_API_KEY", undefined);
+    vi.stubEnv("CLIMBX_API_KEY_FILE", undefined);
+    expect(defaultKeyFilePath()).toBe(join(home, ".climbx", "api_key"));
+    expect(resolveApiKey()).toBe("climbx_sk_default");
+  });
+
+  it("trims surrounding whitespace and trailing newlines from a key file", () => {
+    const dir = tempHome();
+    const file = writeKeyFile(dir, "padded-key", "  climbx_sk_padded\n\n");
+    vi.stubEnv("CLIMBX_API_KEY", undefined);
+    vi.stubEnv("CLIMBX_API_KEY_FILE", file);
+    expect(resolveApiKey()).toBe("climbx_sk_padded");
+  });
+
+  it("returns null when no source yields a key (unreadable file, no default)", () => {
+    const home = tempHome(); // empty temp home: no ~/.climbx/api_key
+    vi.stubEnv("CLIMBX_API_KEY", undefined);
+    vi.stubEnv("CLIMBX_API_KEY_FILE", join(home, "does-not-exist"));
+    expect(resolveApiKey()).toBeNull();
+  });
+
+  it("ignores a whitespace-only CLIMBX_API_KEY and an empty key file", () => {
+    const dir = tempHome();
+    const file = writeKeyFile(dir, "empty-key", "   \n");
+    vi.stubEnv("CLIMBX_API_KEY", "   ");
+    vi.stubEnv("CLIMBX_API_KEY_FILE", file);
+    expect(resolveApiKey()).toBeNull();
   });
 });

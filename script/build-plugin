@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+#
+# Package the climbx-cowork Cowork plugin.
+#
+# Builds the bundled climbx-mcp server, copies its production output into
+# plugin/mcp-server/, then zips the plugin/ tree into climbx-cowork.plugin at
+# the repository root. Restores the MCP dev dependencies afterwards so the
+# working tree is left ready for development.
+#
+# Run from anywhere; paths are resolved relative to this script.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MCP="$ROOT/mcp"
+PLUGIN="$ROOT/plugin"
+SERVER="$PLUGIN/mcp-server"
+ARCHIVE="$ROOT/climbx-cowork.plugin"
+
+for tool in node npm zip; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "build-plugin: required tool '$tool' not found on PATH" >&2
+    exit 1
+  fi
+done
+
+echo "==> Building climbx-mcp"
+npm --prefix "$MCP" run build
+
+echo "==> Pruning MCP dev dependencies (production only)"
+npm --prefix "$MCP" prune --omit=dev
+
+echo "==> Assembling plugin/mcp-server/"
+rm -rf "$SERVER"
+mkdir -p "$SERVER"
+cp -R "$MCP/dist" "$SERVER/dist"
+cp -R "$MCP/node_modules" "$SERVER/node_modules"
+cp "$MCP/package.json" "$SERVER/package.json"
+
+echo "==> Restoring MCP dev dependencies"
+npm --prefix "$MCP" ci >/dev/null
+
+echo "==> Zipping plugin -> $ARCHIVE"
+rm -f "$ARCHIVE"
+( cd "$PLUGIN" && zip -r -q "$ARCHIVE" . -x '*.DS_Store' )
+
+echo "==> Done: $ARCHIVE ($(du -h "$ARCHIVE" | cut -f1))"

@@ -1,11 +1,13 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ClimbxClient, ClimbxError, DEFAULT_BASE_URL } from "./client.js";
+import { ClimbxClient, ClimbxError, DEFAULT_BASE_URL, resolveApiKey } from "./client.js";
 
 const SETUP_HINT =
-  "CLIMBX_API_KEY is not set. Create an API key in ClimbX under Settings → API " +
-  "(https://climbx.so/account/settings/api) and expose it to this server as the " +
-  "CLIMBX_API_KEY environment variable. The key is shown only once at creation.";
+  "No ClimbX API key found. Create an API key in ClimbX under Settings → API " +
+  "(https://climbx.so/account/settings/api), then provide it in any one of these ways: " +
+  "set the CLIMBX_API_KEY environment variable, point CLIMBX_API_KEY_FILE at a file " +
+  "containing the key, or place the key in ~/.climbx/api_key (mode 0600). " +
+  "The key is shown only once at creation.";
 
 /** Mirrors the server-side rejection of URLs so a doomed request never spends quota. */
 export function findUrlInText(text: string): string | null {
@@ -95,7 +97,7 @@ export function registerTools(server: McpServer, makeClient?: () => ClimbxClient
       client = makeClient();
       return client;
     }
-    const apiKey = process.env.CLIMBX_API_KEY;
+    const apiKey = resolveApiKey();
     if (!apiKey) return null;
     // Base-URL validation happens inside the ClimbxClient constructor.
     client = new ClimbxClient({

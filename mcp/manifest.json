@@ -2,7 +2,7 @@
   "manifest_version": "0.2",
   "name": "climbx-mcp",
   "display_name": "ClimbX",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Publish and schedule X posts, read analytics, voice profile, learnings, and outlier feeds via the ClimbX API.",
   "long_description": "An MCP server for the ClimbX (climbx.so) API. Publish and schedule X posts through your connected account, read your analytics by format and niche, fetch your voice profile and derived learnings, and pull outlier posts from the inspiration feeds (creators you track plus network discovery). Community project, not affiliated with ClimbX. Requires a ClimbX account on an active plan or trial and an API key created under Settings > API.",
   "author": {
