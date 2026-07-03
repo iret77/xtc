@@ -152,6 +152,25 @@
   .banner { background: rgba(234, 67, 53, 0.1); border: 1px solid rgba(234, 67, 53, 0.3); color: var(--text); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }
   .banner-warn { background: rgba(251, 188, 5, 0.1); border-color: rgba(251, 188, 5, 0.35); }
   .placeholder { border: 1px dashed var(--border); border-radius: var(--radius); padding: 40px 24px; text-align: center; color: var(--muted); }
+
+  .filterbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg-btn { font-family: inherit; font-size: 13px; color: var(--muted); background: transparent; border: none; padding: 6px 12px; cursor: pointer; }
+  .seg-btn.on { background: var(--accent); color: #fff; }
+  .fsel { font-family: inherit; font-size: 12px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
+  .op-card { display: flex; flex-direction: column; }
+  .op-head { display: flex; align-items: center; gap: 10px; }
+  .op-mult { font-size: 18px; font-weight: 700; color: var(--accent); background: rgba(79, 142, 247, 0.12); border-radius: 8px; padding: 4px 8px; }
+  .op-name { font-weight: 600; }
+  .op-chips { display: flex; gap: 6px; margin-top: 8px; }
+  .op-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .rule { border-bottom: 1px solid var(--border); padding: 8px 0; font-size: 13px; line-height: 1.45; }
+  .rule:last-child { border-bottom: none; }
+  .rule details { margin-top: 4px; }
+  .rule summary { cursor: pointer; font-size: 12px; }
+  .hist { display: flex; flex-wrap: wrap; gap: 14px; }
+  .hist-item { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .hist-date { font-size: 12px; color: var(--muted); }
 </style>
 
 <script>
@@ -338,13 +357,186 @@
     p.innerHTML = html;
   }
 
-  // ---- placeholders for the tabs issue #19 fills ----
-  function renderPlaceholder(tab, label) {
-    document.getElementById("panel-" + tab).innerHTML = '<div class="placeholder"><div class="state-emoji">🚧</div><div class="state-title">' + esc(label) + '</div><div>Coming next. This tab is filled in by the dashboard tabs update.</div></div>';
+  // ---- Opportunities ----
+  var FEEDS = ["following", "surprise"];
+  function opFilters() { return lsGet("filters", {}); }
+  function setOpFilter(k, v) { var f = opFilters(); if (v === "" || v == null) delete f[k]; else f[k] = v; lsSet("filters", f); }
+  function scoreOf(o) { var age = (Date.now() - Date.parse(o.posted_at)) / 86400000; if (isNaN(age)) age = 0; return (o.multiplier || 0) * Math.pow(0.5, age / 14); }
+  function toOpportunity(o, feed) {
+    return { id: o.id, feed: feed, handle: o.handle, name: o.name, text: o.text, format: o.format, niche: o.niche,
+      posted_at: o.posted_at, metrics: { impressions: o.impressions, likes: o.likes, replies: o.replies, retweets: o.retweets },
+      multiplier: o.multiplier, post_url: o.post_url, image_urls: o.image_urls || [] };
+  }
+  function renderFilterBar(options) {
+    var f = opFilters(), feed = f.feed || "following";
+    var html = '<div class="filterbar"><div class="seg">' + FEEDS.map(function (fd) {
+      return '<button class="seg-btn' + (fd === feed ? " on" : "") + '" data-feed="' + fd + '">' + (fd === "following" ? "Following" : "Surprise") + "</button>";
+    }).join("") + "</div>";
+    if (options && options.feeds && options.feeds[feed] && options.feeds[feed].filters) {
+      var filters = options.feeds[feed].filters;
+      Object.keys(filters).forEach(function (name) {
+        var def = filters[name];
+        if (def.kind === "enum" && def.options) {
+          html += '<select class="fsel" data-filter="' + name + '"><option value="">' + esc(name.replace(/_/g, " ")) + "</option>";
+          def.options.forEach(function (o) { html += '<option value="' + esc(o.value) + '"' + (String(f[name]) === String(o.value) ? " selected" : "") + ">" + esc(o.label) + "</option>"; });
+          html += "</select>";
+        }
+      });
+    } else {
+      html += '<span class="muted" style="font-size:12px">Filters unavailable; showing the ' + esc(feed) + " feed.</span>";
+    }
+    return html + "</div>";
+  }
+  function wireFilterBar() {
+    var p = document.getElementById("panel-opportunities");
+    p.querySelectorAll(".seg-btn").forEach(function (b) { b.addEventListener("click", function () { setOpFilter("feed", b.getAttribute("data-feed")); loadOpportunities({ force: true }); }); });
+    p.querySelectorAll(".fsel").forEach(function (s) { s.addEventListener("change", function () { setOpFilter(s.getAttribute("data-filter"), s.value); loadOpportunities({ force: true }); }); });
+  }
+  function handoff(kind, o) {
+    if (!o || typeof sendPrompt !== "function") return;
+    var json = JSON.stringify(o);
+    sendPrompt(kind === "draft" ? "Draft a post from this ClimbX outlier: " + json : "Draft a reply to this post (ClimbX engage): " + json);
+  }
+  function renderOpportunities(opts) {
+    var p = document.getElementById("panel-opportunities"), options = store.options, data = store.opportunities, bar = renderFilterBar(options);
+    if (opts && opts.loading && !data) { p.innerHTML = bar + skeletonCards(3); wireFilterBar(); return; }
+    if (opts && opts.error && !data) { p.innerHTML = bar + errorState(opts.error); wireFilterBar(); return; }
+    var items = (data || []).slice().sort(function (a, b) { return scoreOf(b) - scoreOf(a); });
+    var html = (opts && opts.stale ? staleBanner("opportunities") : "") + bar;
+    if (!items.length) { p.innerHTML = html + emptyState("🔭", "No outliers match", "Lower the multiplier, switch feed, or track more creators in the ClimbX app."); wireFilterBar(); return; }
+    html += '<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">';
+    items.forEach(function (o) {
+      html += '<div class="card op-card"><div class="op-head"><span class="op-mult">' + (o.multiplier ? o.multiplier.toFixed(1) + "x" : "-") + '</span>' +
+        '<div class="op-who"><div class="op-name">' + esc(o.name || o.handle) + '</div><div class="kpi-sub">' + esc(o.handle) + " &middot; " + esc(relTime(o.posted_at)) + "</div></div></div>" +
+        '<div class="op-chips"><span class="chip">' + esc(o.format || "-") + '</span><span class="chip">' + esc(o.niche || "-") + "</span></div>" +
+        '<div class="post-text" style="margin:8px 0">' + esc((o.text || "").replace(/\s+/g, " ").slice(0, 220)) + "</div>" +
+        '<div class="kpi-sub">' + fmt(o.metrics.impressions) + " imp &middot; " + fmt(o.metrics.likes) + " likes &middot; " + fmt(o.metrics.replies) + " replies</div>" +
+        '<div class="op-actions"><button class="btn btn-primary btn-sm" data-draft="' + esc(o.id) + '">Use this idea</button>' +
+        '<button class="btn btn-sm" data-reply="' + esc(o.id) + '">Draft reply</button>' +
+        (o.post_url ? '<a class="link" style="font-size:12px;margin-left:auto" href="' + esc(o.post_url) + '" target="_blank" rel="noopener">open</a>' : "") + "</div></div>";
+    });
+    p.innerHTML = html + "</div>";
+    wireFilterBar();
+    var byId = {}; items.forEach(function (o) { byId[o.id] = o; });
+    p.querySelectorAll("[data-draft]").forEach(function (b) { b.addEventListener("click", function () { handoff("draft", byId[b.getAttribute("data-draft")]); }); });
+    p.querySelectorAll("[data-reply]").forEach(function (b) { b.addEventListener("click", function () { handoff("reply", byId[b.getAttribute("data-reply")]); }); });
+  }
+  async function loadOpportunities(opts) {
+    opts = opts || {};
+    if (currentTab() === "opportunities" && (!store.opportunities || opts.force)) renderOpportunities({ loading: true });
+    try {
+      if (!store.options) { store.options = await mcp("get_inspiration_options", {}); cacheSet("options", store.options); await sleep(CALL_SPACING); }
+      var f = opFilters(), feed = f.feed || "following", args = {};
+      if (feed === "following") { if (f.handles) args.handles = f.handles; }
+      else { ["min_multiplier", "min_impressions", "format", "recency", "image"].forEach(function (k) {
+        if (f[k] != null && f[k] !== "") { var def = store.options.feeds.surprise.filters[k]; args[k] = def && def.type === "number" ? Number(f[k]) : f[k]; }
+      }); }
+      var res = await mcp(feed === "following" ? "get_following_outliers" : "get_surprise_outliers", args);
+      var raw = res.outliers || res.items || res.posts || [];
+      store.opportunities = raw.map(function (o) { return toOpportunity(o, feed); });
+      store.freshest = Date.now(); cacheSet("opportunities", store.opportunities); lsSet("freshest", store.freshest);
+      if (currentTab() === "opportunities") renderOpportunities({});
+      updateFreshness();
+    } catch (e) { if (currentTab() === "opportunities") renderOpportunities({ error: e, stale: !!store.opportunities }); }
+  }
+
+  // ---- Queue ----
+  function errorText(e) { var g = e && e.code && ERROR_GUIDES[e.code]; return g ? g.title + ": " + g.body : (e && e.raw ? e.raw : "Action failed"); }
+  function renderQueue(opts) {
+    var p = document.getElementById("panel-queue"), data = store.queue;
+    if (opts && opts.loading && !data) { p.innerHTML = '<div class="card"><div class="skl skl-line" style="width:80%"></div><div class="skl skl-line" style="width:60%"></div></div>'; return; }
+    if (opts && opts.error && !data) { p.innerHTML = errorState(opts.error); return; }
+    var items = data && data.scheduled ? data.scheduled : [];
+    var html = (opts && opts.stale ? staleBanner("queue") : "");
+    if (!items.length) { p.innerHTML = html + emptyState("🗓️", "Queue is empty", "Schedule a post through the ship skill and it will appear here."); return; }
+    html += '<div class="card"><table class="tbl"><thead><tr><th>Scheduled</th><th>Post</th><th></th></tr></thead><tbody>';
+    items.forEach(function (it) {
+      var when = it.scheduled_for ? new Date(it.scheduled_for).toLocaleString() : "-";
+      html += "<tr><td>" + esc(when) + '<div class="kpi-sub">' + esc(it.status || "pending") + "</div></td>" +
+        '<td><div class="post-text">' + esc((it.text || "").replace(/\s+/g, " ").slice(0, 160)) + "</div></td>" +
+        '<td style="white-space:nowrap"><button class="btn btn-sm" data-move="' + esc(it.id) + '">Move</button> <button class="btn btn-sm" data-cancel="' + esc(it.id) + '">Cancel</button></td></tr>';
+    });
+    p.innerHTML = html + "</tbody></table></div>";
+    var byId = {}; items.forEach(function (it) { byId[it.id] = it; });
+    p.querySelectorAll("[data-move]").forEach(function (b) { b.addEventListener("click", function () { moveScheduled(byId[b.getAttribute("data-move")]); }); });
+    p.querySelectorAll("[data-cancel]").forEach(function (b) { b.addEventListener("click", function () { cancelScheduled(byId[b.getAttribute("data-cancel")]); }); });
+  }
+  async function moveScheduled(it) {
+    if (!it) return;
+    var when = window.prompt("New time as ISO 8601 with timezone (e.g. 2026-07-04T09:00:00+02:00):", it.scheduled_for || "");
+    if (!when) return;
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:\d{2})$/.test(when)) { window.alert("That is not a valid ISO 8601 datetime with a timezone."); return; }
+    if (!window.confirm("Move this scheduled post to " + when + "?")) return;
+    try { await mcp("reschedule_post", { id: it.id, scheduled_for: when }); await loadQueue({ force: true }); }
+    catch (e) { window.alert(errorText(e)); }
+  }
+  async function cancelScheduled(it) {
+    if (!it) return;
+    if (!window.confirm("Cancel this scheduled post? This does NOT refund the daily cap slot it used.")) return;
+    try { await mcp("cancel_scheduled", { id: it.id }); await loadQueue({ force: true }); }
+    catch (e) { window.alert(errorText(e)); }
+  }
+  async function loadQueue(opts) {
+    opts = opts || {};
+    if (currentTab() === "queue" && (!store.queue || opts.force)) renderQueue({ loading: true });
+    try {
+      store.queue = await mcp("list_scheduled", {});
+      store.freshest = Date.now(); cacheSet("queue", store.queue); lsSet("freshest", store.freshest);
+      if (currentTab() === "queue") renderQueue({});
+      updateFreshness();
+    } catch (e) { if (currentTab() === "queue") renderQueue({ error: e, stale: !!store.queue }); }
+  }
+
+  // ---- Learnings ----
+  function ruleTexts(l) { var o = {}; ["positive", "negative"].forEach(function (k) { (l && l[k] ? l[k] : []).forEach(function (r) { o[k + ":" + r.text] = 1; }); }); return o; }
+  function learnCol(title, rules, badge) {
+    var html = '<div class="card"><div class="section-title" style="margin-top:0"><span class="badge ' + badge + '">' + esc(title) + "</span></div>";
+    if (!rules.length) return html + '<div class="muted" style="font-size:13px">None.</div></div>';
+    rules.forEach(function (r) {
+      html += '<div class="rule"><div>' + esc(r.text) + "</div>" + (r.evidence ? '<details><summary class="muted">evidence</summary><div class="kpi-sub" style="margin-top:6px">' + esc(r.evidence) + "</div></details>" : "") + "</div>";
+    });
+    return html + "</div>";
+  }
+  function renderLearnings(opts) {
+    var p = document.getElementById("panel-learnings"), data = store.learnings;
+    if (opts && opts.loading && !data) { p.innerHTML = '<div class="grid" style="grid-template-columns:1fr 1fr"><div class="card skl skl-card"></div><div class="card skl skl-card"></div></div>'; return; }
+    if (opts && opts.error && !data) { p.innerHTML = errorState(opts.error); return; }
+    var l = data && data.current && data.current.learnings ? data.current.learnings : null;
+    if (!l || (!(l.positive || []).length && !(l.negative || []).length)) { p.innerHTML = emptyState("🧭", "No learnings yet", "ClimbX derives do-more and do-less rules once you have enough posts."); return; }
+    var html = (opts && opts.stale ? staleBanner("learnings") : "");
+    html += '<div class="grid" style="grid-template-columns:1fr 1fr">' + learnCol("Do more", l.positive || [], "badge-pos") + learnCol("Do less", l.negative || [], "badge-neg") + "</div>";
+    var snaps = data.history && data.history.snapshots ? data.history.snapshots : [];
+    if (snaps.length) {
+      html += '<div class="section-title">How the rule set evolved</div><div class="card"><div class="hist">';
+      for (var i = 0; i < snaps.length; i++) {
+        var added = 0, removed = 0;
+        if (i > 0) {
+          var prev = ruleTexts(snaps[i - 1].learnings), cur = ruleTexts(snaps[i].learnings);
+          Object.keys(cur).forEach(function (k) { if (!prev[k]) added++; });
+          Object.keys(prev).forEach(function (k) { if (!cur[k]) removed++; });
+        }
+        html += '<div class="hist-item"><span class="hist-date">' + esc(new Date(snaps[i].captured_at).toLocaleDateString()) + "</span>" +
+          (i > 0 ? '<span class="badge badge-pos">+' + added + '</span> <span class="badge badge-neg">-' + removed + "</span>" : '<span class="muted" style="font-size:12px">baseline</span>') + "</div>";
+      }
+      html += "</div></div>";
+    }
+    p.innerHTML = html;
+  }
+  async function loadLearnings(opts) {
+    opts = opts || {};
+    if (currentTab() === "learnings" && (!store.learnings || opts.force)) renderLearnings({ loading: true });
+    try {
+      var current = await mcp("get_learnings", {}); await sleep(CALL_SPACING);
+      var history = await mcp("get_learnings_history", {});
+      store.learnings = { current: current, history: history };
+      store.freshest = Date.now(); cacheSet("learnings", store.learnings); lsSet("freshest", store.freshest);
+      if (currentTab() === "learnings") renderLearnings({});
+      updateFreshness();
+    } catch (e) { if (currentTab() === "learnings") renderLearnings({ error: e, stale: !!store.learnings }); }
   }
 
   // ---- state ----
-  var store = { overview: null, posts: null, freshest: 0 };
+  var store = { overview: null, posts: null, opportunities: null, queue: null, learnings: null, options: null, freshest: 0 };
 
   function updateFreshness() {
     var f = document.getElementById("freshness");
@@ -356,6 +548,9 @@
     var tab = currentTab();
     if (tab === "overview") renderOverview(store.overview, opts);
     else if (tab === "posts") renderPosts(store.posts, opts);
+    else if (tab === "opportunities") renderOpportunities(opts);
+    else if (tab === "queue") renderQueue(opts);
+    else if (tab === "learnings") renderLearnings(opts);
   }
 
   // ---- data loading ----
@@ -389,6 +584,10 @@
     await loadOverview({});
     await sleep(CALL_SPACING);
     await loadPosts();
+    var t = currentTab();
+    if (t === "opportunities") { await sleep(CALL_SPACING); await loadOpportunities({ force: true }); }
+    else if (t === "queue") { await sleep(CALL_SPACING); await loadQueue({ force: true }); }
+    else if (t === "learnings") { await sleep(CALL_SPACING); await loadLearnings({ force: true }); }
     btn.disabled = false; btn.textContent = "Refresh";
   }
 
@@ -401,9 +600,9 @@
       document.querySelector('.tab[data-tab="' + t + '"]').setAttribute("aria-selected", String(t === tab));
       document.getElementById("panel-" + t).hidden = (t !== tab);
     });
-    if (tab === "opportunities") renderPlaceholder("opportunities", "Opportunities");
-    else if (tab === "queue") renderPlaceholder("queue", "Queue");
-    else if (tab === "learnings") renderPlaceholder("learnings", "Learnings");
+    if (tab === "opportunities") { renderOpportunities(store.opportunities ? { stale: !isFresh("opportunities") } : { loading: true }); if (!isFresh("opportunities")) loadOpportunities({}); }
+    else if (tab === "queue") { renderQueue(store.queue ? { stale: !isFresh("queue") } : { loading: true }); if (!isFresh("queue")) loadQueue({}); }
+    else if (tab === "learnings") { renderLearnings(store.learnings ? { stale: !isFresh("learnings") } : { loading: true }); if (!isFresh("learnings")) loadLearnings({}); }
     else renderActive({ loading: !store[tab], stale: !isFresh(tab) });
   }
 
@@ -418,6 +617,7 @@
     // restore cached state for instant render
     var ovc = cacheGet("overview"); if (ovc) store.overview = ovc.data;
     var pc = cacheGet("posts"); if (pc) store.posts = pc.data;
+    ["opportunities", "queue", "learnings", "options"].forEach(function (s) { var c = cacheGet(s); if (c) store[s] = c.data; });
     store.freshest = lsGet("freshest", 0);
     applyTheme((lsGet("chart_prefs", {}) || {}).theme || "dark");
 
