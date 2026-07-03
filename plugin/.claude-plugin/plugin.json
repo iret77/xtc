@@ -1,0 +1,16 @@
+{
+  "name": "climbx-cowork",
+  "version": "0.1.0",
+  "description": "ClimbX companion for Claude Cowork: turn niche outliers into voice-true X posts, schedule and track them, all backed by the ClimbX API.",
+  "author": {
+    "name": "iret77",
+    "url": "https://github.com/iret77"
+  },
+  "homepage": "https://github.com/iret77/climbx-cowork",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iret77/climbx-cowork"
+  },
+  "license": "MIT",
+  "keywords": ["climbx", "x", "twitter", "growth", "cowork"]
+}

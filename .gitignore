@@ -1,3 +1,7 @@
-# Session-local agent context — lives on disk, never in the repo.
+# Session-local agent context: lives on disk, never in the repo.
 CLAUDE.md
 CLAUDE.local.md
+
+# Plugin build output: the bundled MCP server and the packaged plugin archive.
+plugin/mcp-server/
+*.plugin
