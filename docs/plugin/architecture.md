@@ -37,14 +37,14 @@ Skills keep their SKILL.md lean and reference `${CLAUDE_PLUGIN_ROOT}/shared/*.md
 
 ## D2: MCP wiring: bundled stdio server
 
-The plugin bundles the local stdio `climbx-mcp` (built output copied to `plugin/mcp-server/` by the packaging script). `.mcp.json`:
+The plugin bundles the local stdio `climbx-mcp`, esbuild-bundled into a single self-contained file at `plugin/mcp-server/dist/index.mjs` by the packaging script (no `node_modules` is shipped, which keeps the archive small and its paths simple enough for any plugin installer to accept). `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "climbx": {
       "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.mjs"]
     }
   }
 }

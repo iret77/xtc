@@ -2,12 +2,13 @@
 #
 # Package the climbx-cowork Cowork plugin.
 #
-# Builds the bundled climbx-mcp server, copies its production output into
-# plugin/mcp-server/, then zips the plugin/ tree into climbx-cowork.plugin at
-# the repository root. Restores the MCP dev dependencies afterwards so the
-# working tree is left ready for development.
+# Builds climbx-mcp and bundles it into a single self-contained ESM file at
+# plugin/mcp-server/dist/index.mjs with esbuild (no node_modules is shipped),
+# then zips the plugin/ tree into climbx-cowork.plugin at the repository root.
 #
-# Run from anywhere; paths are resolved relative to this script.
+# Bundling to one file keeps the archive small and its paths simple: no deep
+# node_modules tree, no scoped-package (@name) directories, nothing a plugin
+# installer can reject. Run from anywhere; paths resolve relative to this script.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,29 +16,28 @@ MCP="$ROOT/mcp"
 PLUGIN="$ROOT/plugin"
 SERVER="$PLUGIN/mcp-server"
 ARCHIVE="$ROOT/climbx-cowork.plugin"
+ESBUILD="$MCP/node_modules/.bin/esbuild"
 
 for tool in node npm zip; do
-  if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "build-plugin: required tool '$tool' not found on PATH" >&2
-    exit 1
-  fi
+  command -v "$tool" >/dev/null 2>&1 || { echo "build-plugin: required tool '$tool' not found on PATH" >&2; exit 1; }
 done
+
+echo "==> Installing MCP dependencies"
+npm --prefix "$MCP" ci >/dev/null
 
 echo "==> Building climbx-mcp"
 npm --prefix "$MCP" run build
 
-echo "==> Pruning MCP dev dependencies (production only)"
-npm --prefix "$MCP" prune --omit=dev
+[ -x "$ESBUILD" ] || { echo "build-plugin: esbuild not found at $ESBUILD (is it in mcp/ devDependencies?)" >&2; exit 1; }
 
-echo "==> Assembling plugin/mcp-server/"
+echo "==> Bundling the server into a single self-contained file"
 rm -rf "$SERVER"
-mkdir -p "$SERVER"
-cp -R "$MCP/dist" "$SERVER/dist"
-cp -R "$MCP/node_modules" "$SERVER/node_modules"
-cp "$MCP/package.json" "$SERVER/package.json"
-
-echo "==> Restoring MCP dev dependencies"
-npm --prefix "$MCP" ci >/dev/null
+mkdir -p "$SERVER/dist"
+"$ESBUILD" "$MCP/dist/index.js" \
+  --bundle --platform=node --format=esm --target=node20 \
+  --outfile="$SERVER/dist/index.mjs" \
+  --banner:js="import{createRequire}from'module';const require=createRequire(import.meta.url);" \
+  --log-level=warning
 
 echo "==> Zipping plugin -> $ARCHIVE"
 rm -f "$ARCHIVE"
