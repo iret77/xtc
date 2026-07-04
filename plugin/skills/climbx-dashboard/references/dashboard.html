@@ -361,6 +361,8 @@
   var FEEDS = ["following", "surprise"];
   function opFilters() { return lsGet("filters", {}); }
   function setOpFilter(k, v) { var f = opFilters(); if (v === "" || v == null) delete f[k]; else f[k] = v; lsSet("filters", f); }
+  // Half-life is the config default (ranking_half_life_days = 14). The artifact has no path to
+  // ~/.climbx/config.json (only callMcpTool/sendPrompt), so it cannot read a user override here.
   function scoreOf(o) { var age = (Date.now() - Date.parse(o.posted_at)) / 86400000; if (isNaN(age)) age = 0; return (o.multiplier || 0) * Math.pow(0.5, age / 14); }
   function toOpportunity(o, feed) {
     return { id: o.id, feed: feed, handle: o.handle, name: o.name, text: o.text, format: o.format, niche: o.niche,
@@ -377,7 +379,7 @@
       Object.keys(filters).forEach(function (name) {
         var def = filters[name];
         if (def.kind === "enum" && def.options) {
-          html += '<select class="fsel" data-filter="' + name + '"><option value="">' + esc(name.replace(/_/g, " ")) + "</option>";
+          html += '<select class="fsel" data-filter="' + esc(name) + '"><option value="">' + esc(name.replace(/_/g, " ")) + "</option>";
           def.options.forEach(function (o) { html += '<option value="' + esc(o.value) + '"' + (String(f[name]) === String(o.value) ? " selected" : "") + ">" + esc(o.label) + "</option>"; });
           html += "</select>";
         }
@@ -413,7 +415,7 @@
         '<div class="kpi-sub">' + fmt(o.metrics.impressions) + " imp &middot; " + fmt(o.metrics.likes) + " likes &middot; " + fmt(o.metrics.replies) + " replies</div>" +
         '<div class="op-actions"><button class="btn btn-primary btn-sm" data-draft="' + esc(o.id) + '">Use this idea</button>' +
         '<button class="btn btn-sm" data-reply="' + esc(o.id) + '">Draft reply</button>' +
-        (o.post_url ? '<a class="link" style="font-size:12px;margin-left:auto" href="' + esc(o.post_url) + '" target="_blank" rel="noopener">open</a>' : "") + "</div></div>";
+        (/^https?:\/\//i.test(o.post_url || "") ? '<a class="link" style="font-size:12px;margin-left:auto" href="' + esc(o.post_url) + '" target="_blank" rel="noopener">open</a>' : "") + "</div></div>";
     });
     p.innerHTML = html + "</div>";
     wireFilterBar();
@@ -425,7 +427,7 @@
     opts = opts || {};
     if (currentTab() === "opportunities" && (!store.opportunities || opts.force)) renderOpportunities({ loading: true });
     try {
-      if (!store.options) { store.options = await mcp("get_inspiration_options", {}); cacheSet("options", store.options); await sleep(CALL_SPACING); }
+      if (!store.options || !isFresh("options")) { store.options = await mcp("get_inspiration_options", {}); cacheSet("options", store.options); await sleep(CALL_SPACING); }
       var f = opFilters(), feed = f.feed || "following", args = {};
       if (feed === "following") { if (f.handles) args.handles = f.handles; }
       else { ["min_multiplier", "min_impressions", "format", "recency", "image"].forEach(function (k) {
