@@ -32,7 +32,7 @@ See [AGENTS.md](AGENTS.md), the rules apply to humans as well:
 
 - No direct pushes to `main`; every change goes through a feature branch and PR.
 - Commits land in worktrees, not in the main clone (enforced by `.hooks/pre-commit`).
-- Conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, …), PR titles < 70 chars.
+- Conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, ...), PR titles < 70 chars.
 - CI (`tests` job) must be green before merge.
 
 ## Releases
