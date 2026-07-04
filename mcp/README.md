@@ -4,6 +4,8 @@ An [MCP](https://modelcontextprotocol.io) server for the [ClimbX](https://climbx
 
 > **Community project.** Not affiliated with or endorsed by ClimbX. It wraps the official public API documented at [climbx.so/developers/docs](https://climbx.so/developers/docs).
 
+> **Want the finished workflow?** The [climbx-cowork Cowork plugin](../plugin/README.md) is built on this server and turns the raw tools into scanning, drafting in your voice, guarded publishing, a reply workflow, and a live dashboard. This README covers the standalone MCP server on its own.
+
 ## Requirements
 
 - A ClimbX account on an active plan or trial

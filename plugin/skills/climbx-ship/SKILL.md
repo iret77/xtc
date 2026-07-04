@@ -25,7 +25,7 @@ If the user did not say which, ask. Then follow the matching path below.
 
 ### Schedule: suggest sensible slots
 1. Read the account's posting schedule from `get_voice_profile`. It lives under
-   `voice.schedule`: `timezone` (for example `Europe/Berlin`), `active_start_hour` and
+   `voice.schedule`: `timezone` (an IANA name like `America/New_York`), `active_start_hour` and
    `active_end_hour`, and `weekly_slots`, a map of weekday (`mon`..`sun`) to `HH:MM` times in that
    timezone.
 2. Read `list_scheduled` (the pending posts are in its `scheduled` array) to see what is already

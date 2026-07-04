@@ -6,7 +6,7 @@ Binding data shapes, storage paths, protocols, and design tokens. Every issue im
 
 | Path | Content | Written by |
 |---|---|---|
-| `~/.climbx/api_key` | The ClimbX API key, mode 0600, no trailing newline | setup skill (or the user via givepw-style entry) |
+| `~/.climbx/api_key` | The ClimbX API key, mode 0600, no trailing newline | setup skill (or the user via a secure local entry) |
 | `~/.climbx/config.json` | User preferences, see §2 | setup skill, edited on request |
 | `~/.climbx/seen.json` | Opportunities already shown, see §4 | scan skill |
 | `~/.climbx/snapshots/<UTC ISO, colons replaced by dashes>.json` | Voice + learnings snapshots, see §7 | snapshot skill |
