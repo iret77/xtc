@@ -11,20 +11,18 @@ A community-built companion for [ClimbX](https://climbx.so), the AI tool for gro
 | Component | Status | What it is |
 |---|---|---|
 | [`mcp/`](mcp/) | **Released** ([latest](https://github.com/iret77/climbx-cowork/releases/latest)) | `climbx-mcp`: a local stdio MCP server wrapping the full ClimbX API. 16 tools: publish and schedule posts, analytics by format and niche, voice profile, learnings with history, both inspiration feeds, and reply drafting. Ships as a one-click Claude Desktop bundle (`.mcpb`). |
-| [`plugin/`](plugin/) | **Feature-complete** ([milestone](https://github.com/iret77/climbx-cowork/milestone/1)); v1.0 release pending | A Claude Cowork plugin built on that server: an opportunity radar with explanations of why posts hit, a drafting pipeline that writes in your voice using your ClimbX learnings, guarded publishing and queue management, a reply workflow, and a live dashboard artifact. Build it from source with `script/build-plugin`. |
+| [`plugin/`](plugin/) | **Released** ([v1.0.0](https://github.com/iret77/climbx-cowork/releases/latest)) | A Claude Cowork plugin built on that server: an opportunity radar with explanations of why posts hit, a drafting pipeline that writes in your voice using your ClimbX learnings, guarded publishing and queue management, a reply workflow, and a live dashboard artifact. |
 
 ## Use it today
 
-Install the MCP server and every ClimbX capability becomes available in Claude Desktop, Claude Code, or any MCP client:
-
-- **One click:** download [`climbx-mcp.mcpb`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-mcp.mcpb) and open it with Claude Desktop. Full instructions in the [mcp/ README](mcp/README.md).
-- **Zero install:** ClimbX also hosts an official remote MCP at `https://climbx.so/mcp` (HTTP transport, same API key).
+- **The full workflow (Cowork):** download [`climbx-cowork.plugin`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-cowork.plugin) from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest), install it in Claude Cowork, and say "set up ClimbX". Full instructions in the [plugin README](plugin/README.md).
+- **Just the tools (any MCP client):** download [`climbx-mcp.mcpb`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-mcp.mcpb) and open it with Claude Desktop, or point at ClimbX's official remote MCP at `https://climbx.so/mcp`. Full instructions in the [mcp/ README](mcp/README.md).
 
 You need a ClimbX account on an active plan or trial and an API key (ClimbX app: Settings > API).
 
 ## The Cowork plugin
 
-The plugin turns the raw tools into a finished workflow: scan your niche for outliers, understand why they worked, draft posts in your own voice with your learnings applied, confirm and schedule them, manage the queue, draft replies for posts worth engaging with, and watch it all on a live dashboard. It is feature-complete and installable from source today (`script/build-plugin`); the v1.0 release is pending. See the [plugin README](plugin/README.md) to get started, the [v1.0 milestone](https://github.com/iret77/climbx-cowork/milestone/1) for progress, and [docs/plugin/](docs/plugin/) for the design decisions.
+The plugin turns the raw tools into a finished workflow: scan your niche for outliers, understand why they worked, draft posts in your own voice with your learnings applied, confirm and schedule them, manage the queue, draft replies for posts worth engaging with, and watch it all on a live dashboard. It is released as v1.0.0. See the [plugin README](plugin/README.md) to get started, the [v1.0 release](https://github.com/iret77/climbx-cowork/releases/latest) for the download, and [docs/plugin/](docs/plugin/) for the design decisions.
 
 ## Principles
 
