@@ -12,7 +12,7 @@ These rules apply to all AI agents working on this repository (Claude, Codex, Co
 - **Never skip hooks** (`--no-verify`).
 
 ## Releases
-- **Stable releases (e.g. `vX.Y`, `vX.Y.Z`) are cut from `main` only.** Tag the merge commit on `main` after the PR has landed — never tag a feature/dev branch head as a stable version. Production registries (PyPI, npm, ClawHub, GitHub Releases) must only publish from main-rooted tags.
+- **Stable releases (e.g. `vX.Y`, `vX.Y.Z`) are cut from `main` only.** Tag the merge commit on `main` after the PR has landed, never tag a feature/dev branch head as a stable version. Production registries (PyPI, npm, ClawHub, GitHub Releases) must only publish from main-rooted tags.
 - **Pre-release tags** (`vX.Y.Z-rc1`, `vX.Y.Z-devN`, `vX.Y.devN`, etc.) can be cut from feature/dev branches for testing.
 - The `.github/workflows/release-tag-guard.yml` workflow (if installed) enforces this on every `v*` push and fails if a stable tag points at a non-main commit.
 - Never run a stable release without explicit user instruction.
@@ -24,7 +24,7 @@ These rules apply to all AI agents working on this repository (Claude, Codex, Co
 
 ## Working in a multi-session repo
 
-**Convention (enforced):** the main clone never receives commits. Every change — even a single-line typo fix — lands in a worktree. This is branch-agnostic: an agent whose HEAD got switched to `main` by a parallel session is caught here too, not just one that created a feature branch in the wrong tree. Enforced by the `.hooks/pre-commit` hook shipped via the engineering-standards skill.
+**Convention (enforced):** the main clone never receives commits. Every change, even a single-line typo fix, lands in a worktree. This is branch-agnostic: an agent whose HEAD got switched to `main` by a parallel session is caught here too, not just one that created a feature branch in the wrong tree. Enforced by the `.hooks/pre-commit` hook shipped via the engineering-standards skill.
 
 ~~~bash
 git worktree add ../<repo>-<feature> -b <branch> main   # create with new branch
@@ -35,9 +35,9 @@ git branch -D <feature>                                 # remove the branch ref 
 git worktree list                                       # inspect
 ~~~
 
-**After your PR is merged, clean up your worktree.** The two commands above (`git worktree remove …` + `git branch -D …`) are part of the merge workflow, not optional. For accumulated orphans across the repo, `script/prune-worktrees` (if present) reports and safely removes worktrees whose remote branches are gone or merged.
+**After your PR is merged, clean up your worktree.** The two commands above (`git worktree remove ...` + `git branch -D ...`) are part of the merge workflow, not optional. For accumulated orphans across the repo, `script/prune-worktrees` (if present) reports and safely removes worktrees whose remote branches are gone or merged.
 
-Build artefacts (`target/`, `node_modules/`, etc.) live per worktree — first build per tree is full cost, subsequent builds are independent.
+Build artefacts (`target/`, `node_modules/`, etc.) live per worktree, first build per tree is full cost, subsequent builds are independent.
 
 **Bypass levels** (in increasing persistence):
 
@@ -50,7 +50,7 @@ Build artefacts (`target/`, `node_modules/`, etc.) live per worktree — first b
 ### Drift signals (for any unusual main-tree work that is allowed)
 
 - Run `git branch --show-current` before each commit and confirm it matches what you intended.
-- Treat `git status` anomalies as drift signals: directories you didn't touch showing as `??`, unexpected `M` on files you didn't edit. Don't commit through that — `git reflog | head -20` first to see who moved your HEAD.
+- Treat `git status` anomalies as drift signals: directories you didn't touch showing as `??`, unexpected `M` on files you didn't edit. Don't commit through that, `git reflog | head -20` first to see who moved your HEAD.
 - Don't reach for `git reset --hard` reflexively; another session may have uncommitted work in the shared tree. Inspect `git stash list` and `git diff --stat` first.
 
 ## Pre-push Hook
