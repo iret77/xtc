@@ -2,8 +2,7 @@
 CLAUDE.md
 CLAUDE.local.md
 
-# The packaged plugin archive (built on demand for manual upload). A marketplace
-# or git install uses the committed plugin/ directory instead, so plugin/mcp-server/
-# IS committed to keep ./plugin self-contained; rebuild it with script/build-plugin
-# after changing anything under mcp/.
+# Plugin build output (rebuilt on demand by script/build-plugin for manual
+# upload): the bundled MCP server and the packaged plugin archive.
+plugin/mcp-server/
 *.plugin
