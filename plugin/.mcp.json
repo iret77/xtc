@@ -1,8 +1,11 @@
 {
   "mcpServers": {
     "climbx": {
-      "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.mjs"],
+      "command": "/bin/sh",
+      "args": [
+        "-c",
+        "PATH=\"$PATH:/opt/homebrew/bin:/usr/local/bin\"; command -v node >/dev/null 2>&1 || for d in \"$HOME/.nvm/versions/node\"/*/bin; do [ -x \"$d/node\" ] && PATH=\"$d:$PATH\" && break; done; exec node \"$CLAUDE_PLUGIN_ROOT/mcp-server/dist/index.mjs\""
+      ],
       "env": {
         "CLAUDE_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}",
         "CLAUDE_PLUGIN_DATA": "${CLAUDE_PLUGIN_DATA}"

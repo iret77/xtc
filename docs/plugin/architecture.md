@@ -37,14 +37,14 @@ Skills keep their SKILL.md lean and reference `${CLAUDE_PLUGIN_ROOT}/shared/*.md
 
 ## D2: MCP wiring: bundled stdio server
 
-The plugin bundles the local stdio `climbx-mcp`, esbuild-bundled into a single self-contained file at `plugin/mcp-server/dist/index.mjs` (no `node_modules` is shipped, so the committed `plugin/` directory stays small and a marketplace/git install of it is complete). `.mcp.json` starts it with `node` and, crucially, carries an `env` block that passes `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PLUGIN_DATA` into the server process. This mirrors a sibling plugin (byte5-social-planning) whose bundled stdio server launches correctly in Claude Desktop; `node` itself resolves fine (it sits in the same `/opt/homebrew/bin` as the `python`/`uvx` that other working plugins use), so the `env` block, not the runtime path, is the piece that makes the host substitute `${CLAUDE_PLUGIN_ROOT}` and spawn the server. `.mcp.json`:
+The plugin bundles the local stdio `climbx-mcp`, esbuild-bundled into a single self-contained file at `plugin/mcp-server/dist/index.mjs` (no `node_modules` is shipped, so the committed `plugin/` directory stays small and a marketplace/git install of it is complete). `.mcp.json` starts it through a `/bin/sh` wrapper, not a bare `node`. Proven root cause on macOS: Claude Desktop spawns plugin MCP servers natively on the host with the launchd GUI PATH (/usr/bin:/bin:/usr/sbin:/sbin), which contains /usr/bin/python3 but no node, npx, or uvx; a bare `command: "node"` therefore fails with a silent ENOENT before any log exists (verified by spawning under `env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin`: bare node fails with command not found, an absolute node starts the server cleanly). `/bin/sh` is always on the GUI PATH; the wrapper appends the standard node locations (Homebrew ARM and Intel, then nvm as a fallback) and execs node. The env block passes CLAUDE_PLUGIN_ROOT into the process, which the wrapper uses to locate the bundle. `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "climbx": {
-      "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.mjs"],
+      "command": "/bin/sh",
+      "args": ["-c", "PATH=\"$PATH:/opt/homebrew/bin:/usr/local/bin\"; command -v node >/dev/null 2>&1 || for d in \"$HOME/.nvm/versions/node\"/*/bin; do [ -x \"$d/node\" ] && PATH=\"$d:$PATH\" && break; done; exec node \"$CLAUDE_PLUGIN_ROOT/mcp-server/dist/index.mjs\""],
       "env": {
         "CLAUDE_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}",
         "CLAUDE_PLUGIN_DATA": "${CLAUDE_PLUGIN_DATA}"
