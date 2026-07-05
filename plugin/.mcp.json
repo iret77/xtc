@@ -1,8 +1,12 @@
 {
   "mcpServers": {
     "climbx": {
-      "command": "npx",
-      "args": ["-y", "${CLAUDE_PLUGIN_ROOT}/mcp-server"]
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.mjs"],
+      "env": {
+        "CLAUDE_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}",
+        "CLAUDE_PLUGIN_DATA": "${CLAUDE_PLUGIN_DATA}"
+      }
     }
   }
 }
