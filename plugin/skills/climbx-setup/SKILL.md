@@ -11,43 +11,42 @@ has a clear next action.
 First read `${CLAUDE_PLUGIN_ROOT}/shared/contracts.md` (storage, config) and
 `${CLAUDE_PLUGIN_ROOT}/shared/api-notes.md` (error playbook).
 
-## 1. Runtime check
+## 1. Are the ClimbX tools connected?
 
-Confirm Node is available and recent enough for the bundled server: `node --version` should report
-`v20` or higher. If it is missing or older, tell the user the bundled MCP server needs Node 20+ and
-stop here.
+Check whether the ClimbX MCP tools are available (for example `get_voice_profile`, under any
+namespace). If they are, skip to validation.
 
-## 2. API key
+If not, guide the user by host:
 
-Check whether a key already resolves: the `CLIMBX_API_KEY` environment variable, then
-`~/.climbx/api_key`. If one is present, skip to validation.
+- **Claude Cowork / Claude Desktop (the usual case):** install the climbx-mcp Desktop extension.
+  Download `climbx-mcp.mcpb` from the
+  [latest release](https://github.com/iret77/climbx-cowork/releases/latest), open it with Claude
+  Desktop (Settings > Extensions), and enter the ClimbX API key when prompted; it is stored in the
+  OS keychain, never in a file or this chat. Then restart Claude Desktop. Keys are created in the
+  ClimbX app under Settings > API; shipping and reply drafting need a **read & write** key, and the
+  full key is shown only once.
+- **Plain Claude Code:** the plugin-bundled server starts automatically and needs Node 20+
+  (`node --version`). It reads the key from the `CLIMBX_API_KEY` environment variable or
+  `~/.climbx/api_key`. If no key is present, have the user place it in `~/.climbx/api_key`
+  (directory mode 0700, file mode 0600) using a local terminal or editor, **without pasting it into
+  this chat**. Never ask for the key in the conversation and never echo it back.
 
-If no key is found:
-1. Tell the user to create one in the ClimbX app under Settings > API. For shipping and reply
-   drafting they need a **read & write** key; a read-only key is fine for analytics only. The full
-   key is shown only once at creation.
-2. Have them place the key in `~/.climbx/api_key` **without pasting it into this chat**. Describe a
-   secure, local entry: create the `~/.climbx/` directory (mode 0700) and write the key to
-   `~/.climbx/api_key` with mode 0600 using a local terminal or editor, so it never appears in the
-   conversation or in shell history. Never ask the user to type or paste the key here, and never echo
-   it back.
-
-## 3. Validate live
+## 2. Validate live
 
 - Call `get_voice_profile`. Success proves the key is valid and the subscription is active. Map any
   error with the playbook: `invalid_key` (recreate the key), `subscription_required` (plan lapsed,
-  check climbx.so), `missing_bearer` (no key found, back to step 2).
+  check climbx.so), `missing_bearer` (no key found, back to step 1).
 - Call `get_inspiration_options` and check `tracked_handles`. If it is empty, the opportunity radar
   has nothing to scan: guide the user to follow and track 3 to 5 creators in their niche in the
   ClimbX app, then re-run this check.
 
-## 4. Key scope note
+## 3. Key scope note
 
 Say it now rather than surprising the user later: a read-only key works for analytics, the dashboard,
 and scanning, but publishing, scheduling, and reply drafting will fail with `read_only_key`. If they
 plan to ship from here, they need a read & write key.
 
-## 5. Config and first success
+## 4. Config and first success
 
 - If `~/.climbx/config.json` is missing, write the defaults (`draft_language: "auto"`,
   `ranking_half_life_days: 14`, `default_min_multiplier: 1.5`, `snapshot_throttle_hours: 20`) with
@@ -62,7 +61,7 @@ Every state has one action (see api-notes.md for the full playbook):
 
 | State | Next step |
 |---|---|
-| missing key | Create a key in ClimbX Settings > API, place it in `~/.climbx/api_key` (step 2). |
+| missing key | Create a key in ClimbX Settings > API and connect it per step 1 (extension keychain in Cowork, `~/.climbx/api_key` in Claude Code). |
 | invalid_key | The key is unknown or revoked; create a new one and replace the file. |
 | subscription_required | The ClimbX plan lapsed; check the account at climbx.so. |
 | read_only_key | Analytics work; for shipping and engage, mint a read & write key. |

@@ -1,6 +1,7 @@
 <!--
   ClimbX dashboard, single-file Cowork artifact.
-  Data comes exclusively from window.cowork.callMcpTool('mcp__plugin_climbx-cowork_climbx__<tool>', args).
+  Data comes exclusively from window.cowork.callMcpTool with the ClimbX MCP tools; the
+  tool-name prefix is resolved at runtime (Desktop extension or plugin-bundled server).
   Chart.js (MIT) is vendored inline at the end of <body>; there are zero external
   network requests. Design tokens and localStorage keys follow the plugin contracts.
 -->
@@ -239,11 +240,40 @@
   }
   function McpError(text) { this.raw = text || "API error"; this.code = classifyError(text); }
 
-  // Cowork exposes a bundled plugin server's tools as mcp__plugin_<plugin>_<server>__<tool>.
-  // For this plugin: plugin "climbx-cowork", server "climbx".
-  var TOOL_PREFIX = "mcp__plugin_climbx-cowork_climbx__";
+  // The ClimbX tools can come from the climbx-mcp Desktop extension (namespace like
+  // mcp__ClimbX__*) or, in plain Claude Code, from the plugin-bundled server
+  // (mcp__plugin_climbx-cowork_climbx__*). The exact prefix is host-dependent, so it is
+  // resolved once per load by probing a cheap read tool instead of being hardcoded.
+  var TOOL_PREFIX_CANDIDATES = [
+    "mcp__ClimbX__",
+    "mcp__climbx-mcp__",
+    "mcp__climbx__",
+    "mcp__plugin_climbx-cowork_climbx__"
+  ];
+  var TOOL_PREFIX = null;
+  var _prefixProbe = null;
+  function looksLikeUnknownTool(text) { return /unknown|not found|no such|unavailable/i.test(text || ""); }
+  function resolvePrefix() {
+    if (TOOL_PREFIX) return Promise.resolve(TOOL_PREFIX);
+    if (_prefixProbe) return _prefixProbe;
+    _prefixProbe = (async function () {
+      for (var i = 0; i < TOOL_PREFIX_CANDIDATES.length; i++) {
+        var p = TOOL_PREFIX_CANDIDATES[i];
+        try {
+          var res = await window.cowork.callMcpTool(p + "get_inspiration_options", {});
+          var txt = res && res.content && res.content[0] ? (res.content[0].text || "") : "";
+          // An API-level error still proves the server answered under this prefix.
+          if (!(res && res.isError && looksLikeUnknownTool(txt))) { TOOL_PREFIX = p; return p; }
+        } catch (e) { /* try the next candidate */ }
+      }
+      _prefixProbe = null;
+      throw new McpError("No ClimbX MCP server is connected. Install the climbx-mcp Desktop extension (Settings > Extensions), enter your API key, and restart Claude.");
+    })();
+    return _prefixProbe;
+  }
   async function mcp(tool, args) {
-    var res = await window.cowork.callMcpTool(TOOL_PREFIX + tool, args || {});
+    var prefix = await resolvePrefix();
+    var res = await window.cowork.callMcpTool(prefix + tool, args || {});
     var text = res && res.content && res.content[0] ? (res.content[0].text || "") : "";
     if (res && res.isError) throw new McpError(text);
     if (res && res.content && res.content[0] && res.content[0].json) return res.content[0].json;

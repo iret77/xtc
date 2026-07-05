@@ -37,22 +37,7 @@ Skills keep their SKILL.md lean and reference `${CLAUDE_PLUGIN_ROOT}/shared/*.md
 
 ## D2: MCP wiring: bundled stdio server
 
-The plugin bundles the local stdio `climbx-mcp`, esbuild-bundled into a single self-contained file at `plugin/mcp-server/dist/index.mjs` (no `node_modules` is shipped, so the committed `plugin/` directory stays small and a marketplace/git install of it is complete). `.mcp.json` starts it through a `/bin/sh` wrapper, not a bare `node`. Proven root cause on macOS: Claude Desktop spawns plugin MCP servers natively on the host with the launchd GUI PATH (/usr/bin:/bin:/usr/sbin:/sbin), which contains /usr/bin/python3 but no node, npx, or uvx; a bare `command: "node"` therefore fails with a silent ENOENT before any log exists (verified by spawning under `env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin`: bare node fails with command not found, an absolute node starts the server cleanly). `/bin/sh` is always on the GUI PATH; the wrapper appends the standard node locations (Homebrew ARM and Intel, then nvm as a fallback) and execs node. The env block passes CLAUDE_PLUGIN_ROOT into the process, which the wrapper uses to locate the bundle. `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "climbx": {
-      "command": "/bin/sh",
-      "args": ["-c", "PATH=\"$PATH:/opt/homebrew/bin:/usr/local/bin\"; command -v node >/dev/null 2>&1 || for d in \"$HOME/.nvm/versions/node\"/*/bin; do [ -x \"$d/node\" ] && PATH=\"$d:$PATH\" && break; done; exec node \"$CLAUDE_PLUGIN_ROOT/mcp-server/dist/index.mjs\""],
-      "env": {
-        "CLAUDE_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}",
-        "CLAUDE_PLUGIN_DATA": "${CLAUDE_PLUGIN_DATA}"
-      }
-    }
-  }
-}
-```
+In Claude Cowork the ClimbX tools are provided by the **climbx-mcp Desktop extension** (`.mcpb`), which Claude Desktop bridges into Cowork sessions. Field finding (2026-07): Claude Desktop does not currently launch plugin-bundled stdio servers in Cowork at all; on the verification system no plugin ever spawned one (the sibling byte5 plugin migrated from a bundled server to a remote connector for the same reason), while Desktop extensions and connectors connect reliably. The plugin still ships the esbuild-bundled stdio server (`plugin/mcp-server/dist/index.mjs`, started via a `/bin/sh` wrapper that finds node beyond the GUI PATH) for plain Claude Code, where plugin MCP servers launch normally. The dashboard resolves the tool-name prefix at runtime by probing (extension namespace first, then the plugin-server namespace), so both hosts work without hardcoding.
 
 Rationale (decided, not up for re-evaluation):
 - Our server carries the guardrail layer the skills rely on: local pre-validation (URL rejection before a cap slot is spent, strict ISO datetimes, https-only images), actionable error hints per API code, cap summaries on write responses, request timeout, base-url exfiltration guard.

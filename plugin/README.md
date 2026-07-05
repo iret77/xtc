@@ -14,8 +14,8 @@ dashboard. It targets Claude Cowork and also runs in plain Claude Code.
 - A ClimbX account on an active plan or trial, and an API key (ClimbX app: Settings > API). A
   read & write key is needed for publishing, scheduling, and reply drafting; a read-only key works
   for analytics and scanning.
-- Node.js 20 or newer (the plugin bundles a local MCP server that runs on Node).
 - For the opportunity radar: a few creators tracked in your ClimbX Following feed.
+- Only for plain Claude Code (not Cowork): Node.js 20 or newer for the plugin-bundled MCP server.
 
 ## Install
 
@@ -37,9 +37,18 @@ official remote MCP at `https://climbx.so/mcp` for raw tool access; the plugin d
 
 ## Setup (first run)
 
-Say "set up ClimbX". The setup skill checks Node, helps you place your API key in `~/.climbx/api_key`
-(mode 0600, never pasted into chat), validates the account live, checks that you track some creators,
-and writes default preferences. From zero to a first scan takes a couple of minutes.
+The plugin provides the skills and the dashboard; the ClimbX tools come from the **climbx-mcp
+Desktop extension**:
+
+1. Download [`climbx-mcp.mcpb`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-mcp.mcpb)
+   from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest) and open it
+   with Claude Desktop (Settings > Extensions).
+2. Enter your ClimbX API key when prompted; it is stored in the OS keychain.
+3. Restart Claude Desktop, then say "set up ClimbX" in Cowork to validate the account and write
+   your preferences.
+
+In plain Claude Code the plugin-bundled server starts automatically instead (key from
+`CLIMBX_API_KEY` or `~/.climbx/api_key`); the extension is not needed there.
 
 ## The workflows
 
