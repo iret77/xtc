@@ -33,11 +33,34 @@ npm --prefix "$MCP" run build
 echo "==> Bundling the server into a single self-contained file"
 rm -rf "$SERVER"
 mkdir -p "$SERVER/dist"
+# esbuild preserves the entry's line-1 shebang (#!/usr/bin/env node) so npx/npm
+# can run the file as a bin. The banner only restores require() for the few
+# CommonJS deps inside the ESM bundle; it must NOT repeat the shebang or there
+# would be a second, invalid one on line 2.
 "$ESBUILD" "$MCP/dist/index.js" \
   --bundle --platform=node --format=esm --target=node20 \
   --outfile="$SERVER/dist/index.mjs" \
   --banner:js="import{createRequire}from'module';const require=createRequire(import.meta.url);" \
   --log-level=warning
+chmod +x "$SERVER/dist/index.mjs"
+
+# Make mcp-server a self-resolvable package so the plugin can start it with a
+# package runner (npx) instead of a bare 'node' on PATH. A GUI-launched host
+# (Claude Desktop) does not inherit the shell PATH, so 'command: node' can fail
+# with ENOENT; 'command: npx' is resolved by the host the same way it resolves
+# uvx/bunx for other plugins, and npx supplies its own node to run the bin.
+# The bundle is self-contained, so this package declares no dependencies and npx
+# installs nothing.
+MCP_VERSION="$(node -p "require('$MCP/package.json').version")"
+cat > "$SERVER/package.json" <<JSON
+{
+  "name": "climbx-mcp",
+  "version": "$MCP_VERSION",
+  "private": true,
+  "type": "module",
+  "bin": { "climbx-mcp": "dist/index.mjs" }
+}
+JSON
 
 echo "==> Zipping plugin -> $ARCHIVE"
 rm -f "$ARCHIVE"

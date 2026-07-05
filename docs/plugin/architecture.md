@@ -37,14 +37,14 @@ Skills keep their SKILL.md lean and reference `${CLAUDE_PLUGIN_ROOT}/shared/*.md
 
 ## D2: MCP wiring: bundled stdio server
 
-The plugin bundles the local stdio `climbx-mcp`, esbuild-bundled into a single self-contained file at `plugin/mcp-server/dist/index.mjs` by the packaging script (no `node_modules` is shipped, which keeps the archive small and its paths simple enough for any plugin installer to accept). `.mcp.json`:
+The plugin bundles the local stdio `climbx-mcp`, esbuild-bundled into a single self-contained file at `plugin/mcp-server/dist/index.mjs` (no `node_modules` is shipped, which keeps the archive small and its paths simple). The packaging script also writes a minimal `mcp-server/package.json` with a `bin`, so the bundle is a self-resolvable package. The server is started with `npx`, not a bare `node`: a GUI-launched host (Claude Desktop) does not inherit the shell PATH, so `command: "node"` can fail to find node (ENOENT, silent), whereas `command: "npx"` is resolved by the host the same way it resolves `uvx`/`bunx` for other plugins, and npx supplies its own node to run the bundled bin. `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "climbx": {
-      "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.mjs"]
+      "command": "npx",
+      "args": ["-y", "${CLAUDE_PLUGIN_ROOT}/mcp-server"]
     }
   }
 }
