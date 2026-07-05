@@ -19,14 +19,18 @@ dashboard. It targets Claude Cowork and also runs in plain Claude Code.
 
 ## Install
 
-1. Download [`climbx-cowork.plugin`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-cowork.plugin)
-   from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest). It is a
-   self-contained bundle (the MCP server and an inlined dashboard, with no external network
-   dependencies).
-2. Install `climbx-cowork.plugin` in Claude Cowork.
+**From the marketplace (recommended).** This repo is a Claude plugin marketplace, so you can install
+straight from GitHub:
 
-To build from source instead, run `script/build-plugin` from the repository root; it produces the
-same bundle.
+- In Claude Code: `/plugin marketplace add iret77/climbx-cowork` then
+  `/plugin install climbx-cowork@climbx-cowork`.
+- In Claude Desktop (Cowork): add the marketplace `iret77/climbx-cowork` under Plugins, then install
+  climbx-cowork.
+
+**From a release (manual upload).** Download
+[`climbx-cowork.plugin`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-cowork.plugin)
+from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest) and upload it in
+Cowork. To build that bundle from source, run `script/build-plugin` from the repository root.
 
 The plugin bundles the local stdio `climbx-mcp` server for its guardrail layer. ClimbX also hosts an
 official remote MCP at `https://climbx.so/mcp` for raw tool access; the plugin does not depend on it.
