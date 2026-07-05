@@ -15,7 +15,7 @@ A community-built companion for [ClimbX](https://climbx.so), the AI tool for gro
 
 ## Use it today
 
-- **The full workflow (Cowork):** this repo is a Claude plugin marketplace, so install straight from GitHub. In Claude Code: `/plugin marketplace add iret77/climbx-cowork` then `/plugin install climbx-cowork@climbx-cowork`; in Claude Desktop, add the `iret77/climbx-cowork` marketplace under Plugins. Then say "set up ClimbX". (You can also upload the [`climbx-cowork.plugin`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-cowork.plugin) from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest) manually.) Full instructions in the [plugin README](plugin/README.md).
+- **The full workflow (Cowork):** install two pieces from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest) - the tools extension [`climbx-mcp.mcpb`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-mcp.mcpb) (open with Claude Desktop, Settings > Extensions, enter your API key) and the [`climbx-cowork.plugin`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-cowork.plugin) (upload in Cowork for the skills and dashboard). Then say "set up ClimbX". Full instructions in the [plugin README](plugin/README.md).
 - **Just the tools (any MCP client):** download [`climbx-mcp.mcpb`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-mcp.mcpb) and open it with Claude Desktop, or point at ClimbX's official remote MCP at `https://climbx.so/mcp`. Full instructions in the [mcp/ README](mcp/README.md).
 
 You need a ClimbX account on an active plan or trial and an API key (ClimbX app: Settings > API).
