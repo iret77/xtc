@@ -37,14 +37,18 @@ Skills keep their SKILL.md lean and reference `${CLAUDE_PLUGIN_ROOT}/shared/*.md
 
 ## D2: MCP wiring: bundled stdio server
 
-The plugin bundles the local stdio `climbx-mcp`, esbuild-bundled into a single self-contained file at `plugin/mcp-server/dist/index.mjs` (no `node_modules` is shipped, which keeps the archive small and its paths simple). The packaging script also writes a minimal `mcp-server/package.json` with a `bin`, so the bundle is a self-resolvable package. The server is started with `npx`, not a bare `node`: a GUI-launched host (Claude Desktop) does not inherit the shell PATH, so `command: "node"` can fail to find node (ENOENT, silent), whereas `command: "npx"` is resolved by the host the same way it resolves `uvx`/`bunx` for other plugins, and npx supplies its own node to run the bundled bin. `.mcp.json`:
+The plugin bundles the local stdio `climbx-mcp`, esbuild-bundled into a single self-contained file at `plugin/mcp-server/dist/index.mjs` (no `node_modules` is shipped, so the committed `plugin/` directory stays small and a marketplace/git install of it is complete). `.mcp.json` starts it with `node` and, crucially, carries an `env` block that passes `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PLUGIN_DATA` into the server process. This mirrors a sibling plugin (byte5-social-planning) whose bundled stdio server launches correctly in Claude Desktop; `node` itself resolves fine (it sits in the same `/opt/homebrew/bin` as the `python`/`uvx` that other working plugins use), so the `env` block, not the runtime path, is the piece that makes the host substitute `${CLAUDE_PLUGIN_ROOT}` and spawn the server. `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "climbx": {
-      "command": "npx",
-      "args": ["-y", "${CLAUDE_PLUGIN_ROOT}/mcp-server"]
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.mjs"],
+      "env": {
+        "CLAUDE_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}",
+        "CLAUDE_PLUGIN_DATA": "${CLAUDE_PLUGIN_DATA}"
+      }
     }
   }
 }
