@@ -1,69 +1,20 @@
 #!/usr/bin/env bash
 #
-# Package the climbx-cowork Cowork plugin.
+# Package the climbx-cowork Cowork plugin into climbx-cowork.plugin.
 #
-# Builds climbx-mcp and bundles it into a single self-contained ESM file at
-# plugin/mcp-server/dist/index.mjs with esbuild (no node_modules is shipped),
-# then zips the plugin/ tree into climbx-cowork.plugin at the repository root.
-#
-# Bundling to one file keeps the archive small and its paths simple: no deep
-# node_modules tree, no scoped-package (@name) directories, nothing a plugin
-# installer can reject. Run from anywhere; paths resolve relative to this script.
+# The plugin no longer bundles the MCP server: .mcp.json launches it with
+# `npx github:iret77/climbx-mcp`, so the archive is just the plugin components
+# (skills, shared rules, the dashboard artifact, manifests). Run from anywhere.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MCP="$ROOT/mcp"
 PLUGIN="$ROOT/plugin"
-SERVER="$PLUGIN/mcp-server"
 ARCHIVE="$ROOT/climbx-cowork.plugin"
-ESBUILD="$MCP/node_modules/.bin/esbuild"
 
-for tool in node npm zip; do
-  command -v "$tool" >/dev/null 2>&1 || { echo "build-plugin: required tool '$tool' not found on PATH" >&2; exit 1; }
-done
-
-echo "==> Installing MCP dependencies"
-npm --prefix "$MCP" ci >/dev/null
-
-echo "==> Building climbx-mcp"
-npm --prefix "$MCP" run build
-
-[ -x "$ESBUILD" ] || { echo "build-plugin: esbuild not found at $ESBUILD (is it in mcp/ devDependencies?)" >&2; exit 1; }
-
-echo "==> Bundling the server into a single self-contained file"
-rm -rf "$SERVER"
-mkdir -p "$SERVER/dist"
-# esbuild preserves the entry's line-1 shebang (#!/usr/bin/env node) so npx/npm
-# can run the file as a bin. The banner only restores require() for the few
-# CommonJS deps inside the ESM bundle; it must NOT repeat the shebang or there
-# would be a second, invalid one on line 2.
-"$ESBUILD" "$MCP/dist/index.js" \
-  --bundle --platform=node --format=esm --target=node20 \
-  --outfile="$SERVER/dist/index.mjs" \
-  --banner:js="import{createRequire}from'module';const require=createRequire(import.meta.url);" \
-  --log-level=warning
-chmod +x "$SERVER/dist/index.mjs"
-
-# Make mcp-server a self-resolvable package so the plugin can start it with a
-# package runner (npx) instead of a bare 'node' on PATH. A GUI-launched host
-# (Claude Desktop) does not inherit the shell PATH, so 'command: node' can fail
-# with ENOENT; 'command: npx' is resolved by the host the same way it resolves
-# uvx/bunx for other plugins, and npx supplies its own node to run the bin.
-# The bundle is self-contained, so this package declares no dependencies and npx
-# installs nothing.
-MCP_VERSION="$(node -p "require('$MCP/package.json').version")"
-cat > "$SERVER/package.json" <<JSON
-{
-  "name": "climbx-mcp",
-  "version": "$MCP_VERSION",
-  "private": true,
-  "type": "module",
-  "bin": { "climbx-mcp": "dist/index.mjs" }
-}
-JSON
+command -v zip >/dev/null 2>&1 || { echo "build-plugin: 'zip' not found on PATH" >&2; exit 1; }
 
 echo "==> Zipping plugin -> $ARCHIVE"
 rm -f "$ARCHIVE"
-( cd "$PLUGIN" && zip -r -q "$ARCHIVE" . -x '*.DS_Store' )
+( cd "$PLUGIN" && zip -r -q "$ARCHIVE" . -x '*.DS_Store' -x 'mcp-server/*' )
 
 echo "==> Done: $ARCHIVE ($(du -h "$ARCHIVE" | cut -f1))"

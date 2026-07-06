@@ -16,20 +16,15 @@ First read `${CLAUDE_PLUGIN_ROOT}/shared/contracts.md` (storage, config) and
 Check whether the ClimbX MCP tools are available (for example `get_voice_profile`, under any
 namespace). If they are, skip to validation.
 
-If not, guide the user by host:
-
-- **Claude Cowork / Claude Desktop (the usual case):** install the climbx-mcp Desktop extension.
-  Download `climbx-mcp.mcpb` from the
-  [latest release](https://github.com/iret77/climbx-cowork/releases/latest), open it with Claude
-  Desktop (Settings > Extensions), and enter the ClimbX API key when prompted; it is stored in the
-  OS keychain, never in a file or this chat. Then restart Claude Desktop. Keys are created in the
-  ClimbX app under Settings > API; shipping and reply drafting need a **read & write** key, and the
-  full key is shown only once.
-- **Plain Claude Code:** the plugin-bundled server starts automatically and needs Node 20+
-  (`node --version`). It reads the key from the `CLIMBX_API_KEY` environment variable or
-  `~/.climbx/api_key`. If no key is present, have the user place it in `~/.climbx/api_key`
-  (directory mode 0700, file mode 0600) using a local terminal or editor, **without pasting it into
-  this chat**. Never ask for the key in the conversation and never echo it back.
+If not: the plugin launches its MCP server itself with `npx github:iret77/climbx-mcp` (no separate
+install), so the tools appear on their own once the plugin is enabled and Claude is restarted. It
+needs the API key, which it reads from, in order: the plugin's `CLIMBX_API_KEY` config option (entered
+once when the plugin is installed, stored in the OS keychain) or `~/.climbx/api_key` on the host.
+Guide the user to create a key in the ClimbX app under Settings > API (shipping and reply drafting
+need a **read & write** key; the full key is shown only once) and enter it in the plugin's
+configuration, or place it in `~/.climbx/api_key` without pasting it into this chat. Then restart
+Claude so the server picks it up. The `npx` launch needs Node and network on first run (it fetches
+and caches the server).
 
 ## 2. Validate live
 

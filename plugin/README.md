@@ -19,20 +19,17 @@ dashboard. It targets Claude Cowork and also runs in plain Claude Code.
 
 ## Install
 
-Two pieces: the **tools** (the climbx-mcp Desktop extension) and the **plugin** (skills + dashboard).
+Install the plugin (skills, dashboard, and the MCP server wiring) in Claude Cowork by uploading
+[`climbx-cowork.plugin`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-cowork.plugin)
+from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest), or build it with
+`script/build-plugin`.
 
-1. **Tools:** download
-   [`climbx-mcp.mcpb`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-mcp.mcpb)
-   from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest), open it with
-   Claude Desktop (Settings > Extensions), enter your ClimbX API key (stored in the OS keychain), and
-   restart Claude Desktop. This is how the ClimbX tools reach Cowork.
-2. **Plugin:** download
-   [`climbx-cowork.plugin`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-cowork.plugin)
-   from the same release and upload it in Cowork (or build it with `script/build-plugin`).
-
-In plain Claude Code the plugin's own bundled stdio server provides the tools, so the extension is
-not needed there. ClimbX also hosts an official remote MCP at `https://climbx.so/mcp` for raw tool
-access.
+The plugin does not bundle the server: `.mcp.json` launches it with
+`npx github:iret77/climbx-mcp`, which fetches and caches the self-contained
+[climbx-mcp](https://github.com/iret77/climbx-mcp) server on first run (needs Node and network once).
+Enter your ClimbX API key in the plugin's configuration when prompted (stored in the OS keychain), or
+place it in `~/.climbx/api_key`. ClimbX also hosts an official remote MCP at `https://climbx.so/mcp`
+for raw tool access.
 
 ## Setup (first run)
 
