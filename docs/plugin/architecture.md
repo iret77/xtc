@@ -35,16 +35,27 @@ plugin/
 
 Skills keep their SKILL.md lean and reference `${CLAUDE_PLUGIN_ROOT}/shared/*.md` for shared rules. Never hardcode absolute paths; always use the plugin root variable.
 
-## D2: MCP wiring: bundled stdio server
+## D2: MCP wiring: server fetched by npx from its own repo
 
-In Claude Cowork the ClimbX tools are provided by the **climbx-mcp Desktop extension** (`.mcpb`), which Claude Desktop bridges into Cowork sessions. Field finding (2026-07): Claude Desktop does not currently launch plugin-bundled stdio servers in Cowork at all; on the verification system no plugin ever spawned one (the sibling byte5 plugin migrated from a bundled server to a remote connector for the same reason), while Desktop extensions and connectors connect reliably. The plugin still ships the esbuild-bundled stdio server (`plugin/mcp-server/dist/index.mjs`, started via a `/bin/sh` wrapper that finds node beyond the GUI PATH) for plain Claude Code, where plugin MCP servers launch normally. The dashboard resolves the tool-name prefix at runtime by probing (extension namespace first, then the plugin-server namespace), so both hosts work without hardcoding.
+The plugin declares its MCP server in `.mcp.json` and launches it with `npx github:iret77/climbx-mcp`, which fetches and caches the self-contained [climbx-mcp](https://github.com/iret77/climbx-mcp) package (a committed esbuild bundle, no install step) on first run.
 
-Rationale (decided, not up for re-evaluation):
-- Our server carries the guardrail layer the skills rely on: local pre-validation (URL rejection before a cap slot is spent, strict ISO datetimes, https-only images), actionable error hints per API code, cap summaries on write responses, request timeout, base-url exfiltration guard.
-- Version pinning: plugin and MCP ship as one tested unit.
-- The official remote MCP (`https://climbx.so/mcp`, HTTP transport, same Bearer key) stays documented in the README as the alternative for users who only want raw tools; the plugin itself does not depend on it.
+Field finding (2026-07), corrected: Claude Desktop does **not** start a plugin MCP server that points at a plugin-local file (`${CLAUDE_PLUGIN_ROOT}/...`) in Cowork; on the verification system such a server never spawned (no log at all). The earlier "GUI PATH lacks node" diagnosis was wrong: the sibling mcp-marketdata plugin launches its server via `uvx --from git+ssh://...` from the same `/opt/homebrew/bin`, so `node` resolves fine; the real difference is that a plugin-local path is not reachable by the host-side spawn, while a remote-fetched server (uvx/npx from git or npm) is. This wiring mirrors the working mcp-marketdata pattern, verified with a live `npx github:iret77/climbx-mcp` connect (16 tools).
 
-Assumption to verify once in issue #12: the Cowork environment provides Node >= 20 (`node --version`). If not, stop and flag; do not build workarounds.
+```json
+{
+  "mcpServers": {
+    "climbx": {
+      "command": "npx",
+      "args": ["-y", "github:iret77/climbx-mcp"],
+      "env": {
+        "CLIMBX_API_KEY": "${user_config.CLIMBX_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+The API key reaches the server through the plugin's `CLIMBX_API_KEY` user config (OS keychain) as `${user_config.CLIMBX_API_KEY}`, or the server's own `~/.climbx/api_key` fallback. The dashboard artifact resolves the tool-name prefix at runtime by probing, so it works whichever way the server is connected (plugin, or the `climbx-mcp` Desktop extension). The server keeps the guardrail layer the skills rely on (URL rejection before a cap slot is spent, strict ISO datetimes, https-only images, error hints, request timeout, base-url guard). The official remote MCP (`https://climbx.so/mcp`) stays documented as an alternative.
 
 ## D3: API key handling
 
