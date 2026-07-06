@@ -184,7 +184,6 @@
   var CALL_SPACING = 260; // ms between reads, keeps us inside the read budget
 
   var TABS = ["overview", "posts", "opportunities", "queue", "learnings"];
-  var DONE_TABS = { overview: 1, posts: 1 }; // analytics lives inside overview; #19 fills the rest
 
   // ---- storage helpers ----
   function lsGet(key, fallback) {
@@ -427,10 +426,19 @@
     p.querySelectorAll(".seg-btn").forEach(function (b) { b.addEventListener("click", function () { setOpFilter("feed", b.getAttribute("data-feed")); loadOpportunities({ force: true }); }); });
     p.querySelectorAll(".fsel").forEach(function (s) { s.addEventListener("change", function () { setOpFilter(s.getAttribute("data-filter"), s.value); loadOpportunities({ force: true }); }); });
   }
+  // Chat handoff. Cowork exposes sendPrompt as a global; fall back to
+  // window.cowork.sendPrompt in case a host only namespaces it, so the
+  // "Use this idea" / "Draft reply" buttons never silently no-op.
+  function resolveSendPrompt() {
+    if (typeof sendPrompt === "function") return sendPrompt;
+    if (window.cowork && typeof window.cowork.sendPrompt === "function") return window.cowork.sendPrompt.bind(window.cowork);
+    return null;
+  }
   function handoff(kind, o) {
-    if (!o || typeof sendPrompt !== "function") return;
+    var sp = resolveSendPrompt();
+    if (!o || !sp) return;
     var json = JSON.stringify(o);
-    sendPrompt(kind === "draft" ? "Draft a post from this ClimbX outlier: " + json : "Draft a reply to this post (ClimbX engage): " + json);
+    sp(kind === "draft" ? "Draft a post from this ClimbX outlier: " + json : "Draft a reply to this post (ClimbX engage): " + json);
   }
   function renderOpportunities(opts) {
     var p = document.getElementById("panel-opportunities"), options = store.options, data = store.opportunities, bar = renderFilterBar(options);
@@ -463,9 +471,12 @@
       if (!store.options || !isFresh("options")) { store.options = await mcp("get_inspiration_options", {}); cacheSet("options", store.options); await sleep(CALL_SPACING); }
       var f = opFilters(), feed = f.feed || "following", args = {};
       if (feed === "following") { if (f.handles) args.handles = f.handles; }
-      else { ["min_multiplier", "min_impressions", "format", "recency", "image"].forEach(function (k) {
-        if (f[k] != null && f[k] !== "") { var def = store.options.feeds.surprise.filters[k]; args[k] = def && def.type === "number" ? Number(f[k]) : f[k]; }
-      }); }
+      else {
+        var sf = (store.options && store.options.feeds && store.options.feeds.surprise && store.options.feeds.surprise.filters) || {};
+        ["min_multiplier", "min_impressions", "format", "recency", "image"].forEach(function (k) {
+          if (f[k] != null && f[k] !== "") { var def = sf[k]; args[k] = def && def.type === "number" ? Number(f[k]) : f[k]; }
+        });
+      }
       var res = await mcp(feed === "following" ? "get_following_outliers" : "get_surprise_outliers", args);
       var raw = res.outliers || res.items || res.posts || [];
       store.opportunities = raw.map(function (o) { return toOpportunity(o, feed); });

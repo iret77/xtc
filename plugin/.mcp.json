@@ -2,7 +2,7 @@
   "mcpServers": {
     "climbx": {
       "command": "npx",
-      "args": ["-y", "github:iret77/climbx-mcp"],
+      "args": ["-y", "github:iret77/climbx-mcp#v0.4.0"],
       "env": {
         "CLIMBX_API_KEY": "${user_config.CLIMBX_API_KEY}"
       }
