@@ -10,13 +10,13 @@ A community-built companion for [ClimbX](https://climbx.so), the AI tool for gro
 
 | Component | Status | What it is |
 |---|---|---|
-| [`mcp/`](mcp/) | **Released** ([latest](https://github.com/iret77/climbx-cowork/releases/latest)) | `climbx-mcp`: a local stdio MCP server wrapping the full ClimbX API. 16 tools: publish and schedule posts, analytics by format and niche, voice profile, learnings with history, both inspiration feeds, and reply drafting. Ships as a one-click Claude Desktop bundle (`.mcpb`). |
+| [`mcp/`](mcp/) | Moved to [iret77/climbx-mcp](https://github.com/iret77/climbx-mcp) | `climbx-mcp`: a local stdio MCP server wrapping the full ClimbX API. 16 tools: publish and schedule posts, analytics by format and niche, voice profile, learnings with history, both inspiration feeds, and reply drafting. The `mcp/` folder here is a pointer kept because the ClimbX docs link to it. |
 | [`plugin/`](plugin/) | **Released** ([v1.0.0](https://github.com/iret77/climbx-cowork/releases/latest)) | A Claude Cowork plugin built on that server: an opportunity radar with explanations of why posts hit, a drafting pipeline that writes in your voice using your ClimbX learnings, guarded publishing and queue management, a reply workflow, and a live dashboard artifact. |
 
 ## Use it today
 
 - **The full workflow (Cowork):** upload [`climbx-cowork.plugin`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-cowork.plugin) from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest) in Cowork and enter your ClimbX API key when prompted. The plugin launches its MCP server itself via `npx github:iret77/climbx-mcp`, so there is nothing else to install. Then say "set up ClimbX". Full instructions in the [plugin README](plugin/README.md).
-- **Just the tools (any MCP client):** download [`climbx-mcp.mcpb`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-mcp.mcpb) and open it with Claude Desktop, or point at ClimbX's official remote MCP at `https://climbx.so/mcp`. Full instructions in the [mcp/ README](mcp/README.md).
+- **Just the tools (any MCP client):** run the server with `npx -y github:iret77/climbx-mcp` (no install, no npm account), or point at ClimbX's official remote MCP at `https://climbx.so/mcp`. Full instructions in the [climbx-mcp README](https://github.com/iret77/climbx-mcp#readme).
 
 You need a ClimbX account on an active plan or trial and an API key (ClimbX app: Settings > API).
 
