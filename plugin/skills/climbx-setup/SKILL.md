@@ -16,7 +16,7 @@ First read `${CLAUDE_PLUGIN_ROOT}/shared/contracts.md` (storage, config) and
 Check whether the ClimbX MCP tools are available (for example `get_voice_profile`, under any
 namespace). If they are, skip to validation.
 
-If not: the plugin launches its MCP server itself with `npx github:iret77/climbx-mcp` (no separate
+If not: the plugin launches its MCP server itself with `npx -y github:iret77/climbx-mcp` (no separate
 install), so the tools appear on their own once the plugin is enabled and Claude is restarted. It
 needs the API key, which it reads from, in order: the plugin's `CLIMBX_API_KEY` config option (entered
 once when the plugin is installed, stored in the OS keychain) or `~/.climbx/api_key` on the host.

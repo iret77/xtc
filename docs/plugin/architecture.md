@@ -12,7 +12,7 @@ The plugin follows the Claude plugin schema (shared by Claude Code and Cowork). 
 plugin/
 ├── .claude-plugin/
 │   └── plugin.json          # name: climbx-cowork, semver, description, author, license, repository
-├── .mcp.json                # MCP server wiring: npx github:iret77/climbx-mcp (see D2/D3)
+├── .mcp.json                # MCP server wiring: npx -y github:iret77/climbx-mcp (see D2/D3)
 ├── skills/
 │   ├── climbx/              # core orchestrator skill (issue #13)
 │   ├── climbx-setup/        # first-run setup (issue #21)
@@ -38,7 +38,7 @@ Skills keep their SKILL.md lean and reference `${CLAUDE_PLUGIN_ROOT}/shared/*.md
 
 The plugin declares its MCP server in `.mcp.json` and launches it with `npx -y github:iret77/climbx-mcp#v0.4.0`, which fetches and caches the self-contained [climbx-mcp](https://github.com/iret77/climbx-mcp) package (a committed esbuild bundle, no install step) on first run. The ref is **pinned to a tag** (`#v0.4.0`) rather than tracking the default branch, so a later commit to climbx-mcp cannot change what installed plugins run; bump the pin deliberately when adopting a new server release.
 
-Field finding (2026-07), corrected: Claude Desktop does **not** start a plugin MCP server that points at a plugin-local file (`${CLAUDE_PLUGIN_ROOT}/...`) in Cowork; on the verification system such a server never spawned (no log at all). The earlier "GUI PATH lacks node" diagnosis was wrong: the sibling mcp-marketdata plugin launches its server via `uvx --from git+ssh://...` from the same `/opt/homebrew/bin`, so `node` resolves fine; the real difference is that a plugin-local path is not reachable by the host-side spawn, while a remote-fetched server (uvx/npx from git or npm) is. This wiring mirrors the working mcp-marketdata pattern, verified with a live `npx github:iret77/climbx-mcp` connect (16 tools).
+Field finding (2026-07), corrected: Claude Desktop does **not** start a plugin MCP server that points at a plugin-local file (`${CLAUDE_PLUGIN_ROOT}/...`) in Cowork; on the verification system such a server never spawned (no log at all). The earlier "GUI PATH lacks node" diagnosis was wrong: the sibling mcp-marketdata plugin launches its server via `uvx --from git+ssh://...` from the same `/opt/homebrew/bin`, so `node` resolves fine; the real difference is that a plugin-local path is not reachable by the host-side spawn, while a remote-fetched server (uvx/npx from git or npm) is. This wiring mirrors the working mcp-marketdata pattern, verified with a live `npx -y github:iret77/climbx-mcp` connect (16 tools).
 
 ```json
 {
