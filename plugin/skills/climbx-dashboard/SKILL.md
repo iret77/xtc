@@ -40,5 +40,5 @@ republish is only needed to pick up a new template version.
   errors, the guidance from the shared error playbook, all inside the artifact.
 - Dark theme by default with a light toggle, on the shared design tokens.
 
-The Opportunities, Queue, and Learnings tabs are present as placeholders in this foundation and are
-filled by the dashboard tabs update.
+All five tabs are implemented and load live data through the MCP tools: Overview (KPIs and charts),
+Posts, Opportunities (with feed and filter controls), Queue (scheduled posts), and Learnings over time.

@@ -31,7 +31,12 @@ if (srv) {
   check(args.includes("-y"), ".mcp.json: args must include -y (non-interactive npx)");
   const ref = args.find((a) => typeof a === "string" && a.startsWith("github:iret77/climbx-mcp"));
   check(ref, ".mcp.json: args must reference github:iret77/climbx-mcp");
-  check(ref && ref.includes("#"), `.mcp.json: the climbx-mcp ref must be pinned to a tag/sha (got ${ref}); tracking the default branch is not allowed`);
+  // Must be pinned to a version tag (#vX.Y.Z) or a commit sha, not a branch or an
+  // arbitrary ref, so installed plugins cannot be moved by a later push to climbx-mcp.
+  check(
+    ref && /#(v\d+\.\d+\.\d+|[0-9a-f]{7,40})$/.test(ref),
+    `.mcp.json: the climbx-mcp ref must be pinned to a version tag (#vX.Y.Z) or a commit sha (got ${ref}); a branch or bare ref is not allowed`,
+  );
   // userConfig coupling: every ${user_config.KEY} referenced must be declared.
   const env = srv.env || {};
   for (const val of Object.values(env)) {
@@ -47,7 +52,11 @@ check(!/<script[^>]+\bsrc=/i.test(html), "dashboard.html: external <script src=.
 const block = html.match(/<script>([\s\S]*?)<\/script>/);
 check(block, "dashboard.html: no inline <script> block found");
 if (block) {
-  try { new Function(block[1]); } catch (e) { errors.push(`dashboard.html: app script does not parse: ${e.message}`); }
+  const app = block[1];
+  try { new Function(app); } catch (e) { errors.push(`dashboard.html: app script does not parse: ${e.message}`); }
+  // Regression guards for fixes that are easy to silently undo.
+  check(!/\bDONE_TABS\b/.test(app), "dashboard.html: DONE_TABS reintroduced (dead code)");
+  check(/function resolveSendPrompt\b/.test(app), "dashboard.html: resolveSendPrompt missing (chat-handoff robustness regressed)");
 }
 
 if (errors.length) {

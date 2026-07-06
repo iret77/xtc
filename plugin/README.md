@@ -25,7 +25,7 @@ from the [latest release](https://github.com/iret77/climbx-cowork/releases/lates
 `script/build-plugin`.
 
 The plugin does not bundle the server: `.mcp.json` launches it with
-`npx github:iret77/climbx-mcp`, which fetches and caches the self-contained
+`npx -y github:iret77/climbx-mcp`, which fetches and caches the self-contained
 [climbx-mcp](https://github.com/iret77/climbx-mcp) server on first run (needs Node and network once).
 Enter your ClimbX API key in the plugin's configuration when prompted (stored in the OS keychain), or
 place it in `~/.climbx/api_key`. ClimbX also hosts an official remote MCP at `https://climbx.so/mcp`
@@ -38,7 +38,7 @@ plugin; there is no separate extension to add.
 
 1. Enter your ClimbX API key in the plugin's configuration when prompted (stored in the OS keychain),
    or place it in `~/.climbx/api_key` (mode 0600).
-2. On the first tool call the plugin runs `npx github:iret77/climbx-mcp`, which fetches and caches the
+2. On the first tool call the plugin runs `npx -y github:iret77/climbx-mcp`, which fetches and caches the
    server (needs Node and network once). This works the same in Cowork and plain Claude Code.
 3. Say "set up ClimbX" to validate the account and write your preferences.
 
