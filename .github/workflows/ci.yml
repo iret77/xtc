@@ -6,9 +6,9 @@ on:
   pull_request:
 
 # The MCP server and its unit tests live in iret77/climbx-mcp, which runs its
-# own CI. This repo now holds only the Cowork plugin, so CI validates the
-# plugin: the manifests parse, the dashboard artifact script is syntactically
-# valid, and the plugin bundles.
+# own CI. This repo holds only the Cowork plugin, so CI validates the plugin:
+# manifest structure, the .mcp.json wiring and userConfig coupling, the pinned
+# server ref, the dashboard artifact, and that the plugin bundles.
 jobs:
   tests:
     name: tests
@@ -18,22 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Plugin manifests are valid JSON
-        run: |
-          for f in plugin/.claude-plugin/plugin.json plugin/.mcp.json; do
-            node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))"
-            echo "ok: $f"
-          done
-      - name: Dashboard artifact script parses
-        run: |
-          node -e "
-            const fs = require('fs');
-            const html = fs.readFileSync('plugin/skills/climbx-dashboard/references/dashboard.html', 'utf8');
-            const m = html.match(/<script>([\s\S]*?)<\/script>/);
-            if (!m) { throw new Error('no <script> block in dashboard.html'); }
-            fs.writeFileSync('dashboard-app.js', m[1]);
-          "
-          node --check dashboard-app.js
-          rm -f dashboard-app.js
+      - name: Validate plugin (manifests, mcp wiring, dashboard)
+        run: node script/check-plugin.mjs
       - name: Plugin bundles
         run: ./script/build-plugin

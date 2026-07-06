@@ -1,0 +1,58 @@
+#!/usr/bin/env node
+// Structural validation for the climbx-cowork plugin. Run in CI and locally.
+// Goes beyond "is it valid JSON" to check the things that actually break installs:
+// manifest completeness, the .mcp.json wiring, the userConfig coupling, and that
+// the dashboard artifact parses and stays self-contained.
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const errors = [];
+const check = (cond, msg) => { if (!cond) errors.push(msg); };
+const readJson = (p) => JSON.parse(readFileSync(join(root, p), "utf8"));
+
+// --- plugin.json ---
+const manifest = readJson("plugin/.claude-plugin/plugin.json");
+check(typeof manifest.name === "string" && manifest.name.length > 0, "plugin.json: name missing");
+check(/^\d+\.\d+\.\d+$/.test(manifest.version || ""), `plugin.json: version not semver: ${manifest.version}`);
+check(typeof manifest.description === "string" && manifest.description.length > 0, "plugin.json: description missing");
+check(manifest.license, "plugin.json: license missing");
+const userConfig = manifest.userConfig || {};
+check(userConfig.CLIMBX_API_KEY, "plugin.json: userConfig.CLIMBX_API_KEY missing");
+
+// --- .mcp.json ---
+const mcp = readJson("plugin/.mcp.json");
+const srv = mcp.mcpServers && mcp.mcpServers.climbx;
+check(srv, ".mcp.json: mcpServers.climbx missing");
+if (srv) {
+  check(srv.command === "npx", `.mcp.json: expected command "npx", got ${JSON.stringify(srv.command)}`);
+  const args = Array.isArray(srv.args) ? srv.args : [];
+  check(args.includes("-y"), ".mcp.json: args must include -y (non-interactive npx)");
+  const ref = args.find((a) => typeof a === "string" && a.startsWith("github:iret77/climbx-mcp"));
+  check(ref, ".mcp.json: args must reference github:iret77/climbx-mcp");
+  check(ref && ref.includes("#"), `.mcp.json: the climbx-mcp ref must be pinned to a tag/sha (got ${ref}); tracking the default branch is not allowed`);
+  // userConfig coupling: every ${user_config.KEY} referenced must be declared.
+  const env = srv.env || {};
+  for (const val of Object.values(env)) {
+    const m = typeof val === "string" && val.match(/\$\{user_config\.([A-Za-z0-9_]+)\}/);
+    if (m) check(userConfig[m[1]], `.mcp.json references \${user_config.${m[1]}} but plugin.json userConfig has no ${m[1]}`);
+  }
+  check(env.CLIMBX_API_KEY === "${user_config.CLIMBX_API_KEY}", ".mcp.json: env.CLIMBX_API_KEY must be ${user_config.CLIMBX_API_KEY}");
+}
+
+// --- dashboard artifact ---
+const html = readFileSync(join(root, "plugin/skills/climbx-dashboard/references/dashboard.html"), "utf8");
+check(!/<script[^>]+\bsrc=/i.test(html), "dashboard.html: external <script src=...> found; the artifact must be self-contained");
+const block = html.match(/<script>([\s\S]*?)<\/script>/);
+check(block, "dashboard.html: no inline <script> block found");
+if (block) {
+  try { new Function(block[1]); } catch (e) { errors.push(`dashboard.html: app script does not parse: ${e.message}`); }
+}
+
+if (errors.length) {
+  console.error("Plugin validation FAILED:");
+  for (const e of errors) console.error("  - " + e);
+  process.exit(1);
+}
+console.log("Plugin validation OK: manifests, mcp wiring, userConfig coupling, dashboard artifact.");
