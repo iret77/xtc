@@ -11,7 +11,7 @@ A community-built companion for [ClimbX](https://climbx.so), the AI tool for gro
 | Component | Status | What it is |
 |---|---|---|
 | [`mcp/`](mcp/) | Moved to [iret77/climbx-mcp](https://github.com/iret77/climbx-mcp) | `climbx-mcp`: a local stdio MCP server wrapping the full ClimbX API. 16 tools: publish and schedule posts, analytics by format and niche, voice profile, learnings with history, both inspiration feeds, and reply drafting. The `mcp/` folder here is a pointer kept because the ClimbX docs link to it. |
-| [`plugin/`](plugin/) | **Released** ([v1.2.0](https://github.com/iret77/climbx-cowork/releases/latest)) | A Claude Cowork plugin built on that server: an opportunity radar with explanations of why posts hit, a drafting pipeline that writes in your voice using your ClimbX learnings, guarded publishing and queue management, a reply workflow, and a live dashboard artifact. |
+| [`plugin/`](plugin/) | **Released** ([v1.3.0](https://github.com/iret77/climbx-cowork/releases/latest)) | A Claude Cowork plugin built on that server: an opportunity radar with explanations of why posts hit, a drafting pipeline that writes in your voice using your ClimbX learnings, guarded publishing and queue management, a reply workflow, and a live dashboard artifact (KPIs, format and niche performance, voice and cadence, and the weekly posting schedule). |
 
 ## Use it today
 
@@ -22,7 +22,7 @@ You need a ClimbX account on an active plan or trial and an API key (ClimbX app:
 
 ## The Cowork plugin
 
-The plugin turns the raw tools into a finished workflow: scan your niche for outliers, understand why they worked, draft posts in your own voice with your learnings applied, confirm and schedule them, manage the queue, draft replies for posts worth engaging with, and watch it all on a live dashboard. It is released as v1.2.0. See the [plugin README](plugin/README.md) to get started, the [latest release](https://github.com/iret77/climbx-cowork/releases/latest) for the download, and [docs/plugin/](docs/plugin/) for the design decisions.
+The plugin turns the raw tools into a finished workflow: scan your niche for outliers, understand why they worked, draft posts in your own voice with your learnings applied, confirm and schedule them, manage the queue, draft replies for posts worth engaging with, and watch it all on a live dashboard. It is released as v1.3.0. See the [plugin README](plugin/README.md) to get started, the [latest release](https://github.com/iret77/climbx-cowork/releases/latest) for the download, and [docs/plugin/](docs/plugin/) for the design decisions.
 
 ## Principles
 

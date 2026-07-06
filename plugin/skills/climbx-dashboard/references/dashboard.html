@@ -138,6 +138,12 @@
   .ind-up::before { content: "\25B2 "; color: var(--positive); }
   .ind-down::before { content: "\25BC "; color: var(--negative); }
   .post-text { color: var(--text); line-height: 1.45; max-width: 460px; }
+  .persona { color: var(--text); line-height: 1.55; font-size: 13px; white-space: pre-wrap; max-height: 260px; overflow-y: auto; }
+  .slots { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .slot { border: 1px solid var(--border); border-radius: 8px; padding: 10px 6px; text-align: center; }
+  .slot-day { color: var(--muted); font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .slot-time { font-size: 13px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  @media (max-width: 560px) { .slots { grid-template-columns: repeat(4, 1fr); } }
   .link { color: var(--accent); text-decoration: none; }
   .link:hover { text-decoration: underline; }
   .muted { color: var(--muted); }
@@ -207,6 +213,21 @@
   }
   function pct(n) { return (n == null || isNaN(n)) ? "-" : n.toFixed(1) + "%"; }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  // Humanize an internal label: strip wrapping underscores, spaces for underscores,
+  // capitalize. "__unlabeled__" -> "Unlabeled", "genuine_question" -> "Genuine question".
+  function labelize(s) {
+    s = String(s == null ? "" : s).replace(/^_+|_+$/g, "").replace(/_/g, " ").trim();
+    if (!s) return "Unlabeled";
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  // Grapheme-aware truncation so emoji / surrogate pairs are never split in half.
+  function clip(s, n) {
+    var chars = Array.from(String(s == null ? "" : s).replace(/\s+/g, " ").trim());
+    return chars.length > n ? chars.slice(0, n).join("").replace(/\s+$/, "") + "…" : chars.join("");
+  }
+  // Performance metrics arrive as { value, trend } (or a bare number on older shapes).
+  function metricVal(m) { return m && typeof m === "object" ? m.value : m; }
+  function trendClass(m) { var tr = m && typeof m === "object" ? m.trend : null; return tr === "up" ? "ind-up" : tr === "down" ? "ind-down" : ""; }
   function relTime(iso) {
     if (!iso) return "";
     var t = Date.parse(iso); if (isNaN(t)) return "";
@@ -344,6 +365,7 @@
     // Analytics tables live here in the overview foundation.
     html += '<div class="section-title">Format performance</div><div class="card" id="fmt-card">' + perfTable(data.formats, "format") + "</div>";
     html += '<div class="section-title">Niche performance</div><div class="card" id="niche-card">' + perfTable(data.niches, "niche") + "</div>";
+    html += renderVoiceCadence(data.voice);
     p.innerHTML = html;
 
     var bf = (a && a.by_format ? a.by_format : []).slice().sort(function (x, y) { return (y.median_impressions || 0) - (x.median_impressions || 0); });
@@ -360,14 +382,52 @@
     if (!perf) return '<div class="skl skl-line" style="width:60%"></div><div class="skl skl-line" style="width:80%"></div><div class="skl skl-line" style="width:70%"></div>';
     var rows = perf.rows || [];
     if (!rows.length) return emptyState("📈", "No " + key + " data", "Not enough posts in this window yet.");
-    var median = perf.median_impressions || 0;
-    var out = '<table class="tbl"><thead><tr><th>' + esc(key[0].toUpperCase() + key.slice(1)) + '</th><th class="num">Posts</th><th class="num">Share</th><th class="num">Median replies</th><th class="num">Median impressions</th></tr></thead><tbody>';
-    rows.slice().sort(function (x, y) { return (y.impressions || 0) - (x.impressions || 0); }).forEach(function (r) {
-      var cls = median && r.impressions ? (r.impressions >= median ? "ind-up" : "ind-down") : "";
-      out += "<tr><td>" + esc(r[key]) + '</td><td class="num">' + fmt(r.posts) + '</td><td class="num">' + pct((r.share || 0) * (r.share <= 1 ? 100 : 1)) + '</td><td class="num">' + fmt(r.replies) + '</td><td class="num ' + cls + '">' + fmt(r.impressions) + "</td></tr>";
+    var out = '<table class="tbl"><thead><tr><th>' + esc(labelize(key)) + '</th><th class="num">Posts</th><th class="num">Share</th><th class="num">Median impressions</th><th class="num">Median replies</th></tr></thead><tbody>';
+    rows.slice().sort(function (x, y) { return (metricVal(y.impressions) || 0) - (metricVal(x.impressions) || 0); }).forEach(function (r) {
+      out += "<tr><td>" + esc(labelize(r[key])) + '</td>' +
+        '<td class="num">' + fmt(r.posts) + '</td>' +
+        '<td class="num">' + pct((r.share || 0) * (r.share <= 1 ? 100 : 1)) + '</td>' +
+        '<td class="num ' + trendClass(r.impressions) + '">' + fmt(metricVal(r.impressions)) + '</td>' +
+        '<td class="num ' + trendClass(r.replies) + '">' + fmt(metricVal(r.replies)) + "</td></tr>";
     });
-    out += "</tbody></table><div class=\"kpi-sub\" style=\"margin-top:8px\">Arrows compare each row to the account median (" + fmt(median) + " impressions).</div>";
+    out += "</tbody></table>";
     return out;
+  }
+
+  // ClimbX returns the persona with a literal @<handle> placeholder and the API
+  // exposes no owner handle, so drop the placeholder cleanly rather than showing it.
+  function sanitizePersona(text) {
+    return String(text == null ? "" : text)
+      .replace(/@?<handle>,\s*/g, "")
+      .replace(/@?<handle>/g, "you")
+      .trim();
+  }
+  function renderVoiceCadence(voice) {
+    if (!voice) return "";
+    var c = voice.cadence || {}, persona = sanitizePersona(voice.persona);
+    var html = '<div class="section-title">Voice &amp; cadence</div>';
+    html += '<div class="grid kpis" style="margin-bottom:12px">';
+    html += '<div class="card"><div class="kpi-label">Posts / day</div><div class="kpi-value">' + fmt(c.posts_per_day) + '</div><div class="kpi-sub">' + esc(c.phase ? c.phase + " phase" : "target") + "</div></div>";
+    html += '<div class="card"><div class="kpi-label">Replies / day</div><div class="kpi-value">' + fmt(c.replies_per_day) + '</div><div class="kpi-sub">target</div></div>';
+    html += "</div>";
+    if (persona) html += '<div class="card"><div class="persona">' + esc(persona) + "</div></div>";
+    html += renderWeeklySlots(voice.schedule);
+    return html;
+  }
+  function renderWeeklySlots(s) {
+    var slots = s && s.weekly_slots;
+    if (!slots) return "";
+    var days = [["mon", "Mon"], ["tue", "Tue"], ["wed", "Wed"], ["thu", "Thu"], ["fri", "Fri"], ["sat", "Sat"], ["sun", "Sun"]];
+    var tz = s.timezone ? " (" + esc(s.timezone) + ")" : "";
+    var html = '<div class="section-title">Weekly posting slots' + tz + '</div><div class="card"><div class="slots">';
+    days.forEach(function (d) {
+      var times = slots[d[0]] || [];
+      html += '<div class="slot"><div class="slot-day">' + d[1] + "</div>" +
+        (times.length ? times.map(function (t) { return '<div class="slot-time">' + esc(t) + "</div>"; }).join("") : '<div class="slot-time muted">-</div>') +
+        "</div>";
+    });
+    html += "</div></div>";
+    return html;
   }
 
   // ---- Posts ----
@@ -381,7 +441,7 @@
     html += '<div class="card"><table class="tbl"><thead><tr><th>Post</th><th>Format</th><th class="num">Impressions</th><th class="num">Likes</th><th class="num">Replies</th><th class="num">Reposts</th><th class="num">Quotes</th></tr></thead><tbody>';
     list.forEach(function (post) {
       var m = post.metrics || {};
-      html += "<tr><td><div class=\"post-text\">" + esc((post.text || "").replace(/\s+/g, " ").slice(0, 180)) + '</div><div class="kpi-sub">' + esc(relTime(post.posted_at)) + (post.is_reply ? ' &middot; <span class="chip">reply</span>' : "") + "</div></td>" +
+      html += "<tr><td><div class=\"post-text\">" + esc(clip(post.text, 180)) + '</div><div class="kpi-sub">' + esc(relTime(post.posted_at)) + (post.is_reply ? ' &middot; <span class="chip">reply</span>' : "") + "</div></td>" +
         '<td><span class="chip">' + esc(post.format || "-") + "</span></td>" +
         '<td class="num">' + fmt(m.impressions) + '</td><td class="num">' + fmt(m.likes) + '</td><td class="num">' + fmt(m.replies) + '</td><td class="num">' + fmt(m.retweets) + '</td><td class="num">' + fmt(m.quote_tweets) + "</td></tr>";
     });
@@ -452,7 +512,7 @@
       html += '<div class="card op-card"><div class="op-head"><span class="op-mult">' + (o.multiplier ? o.multiplier.toFixed(1) + "x" : "-") + '</span>' +
         '<div class="op-who"><div class="op-name">' + esc(o.name || o.handle) + '</div><div class="kpi-sub">' + esc(o.handle) + " &middot; " + esc(relTime(o.posted_at)) + "</div></div></div>" +
         '<div class="op-chips"><span class="chip">' + esc(o.format || "-") + '</span><span class="chip">' + esc(o.niche || "-") + "</span></div>" +
-        '<div class="post-text" style="margin:8px 0">' + esc((o.text || "").replace(/\s+/g, " ").slice(0, 220)) + "</div>" +
+        '<div class="post-text" style="margin:8px 0">' + esc(clip(o.text, 220)) + "</div>" +
         '<div class="kpi-sub">' + fmt(o.metrics.impressions) + " imp &middot; " + fmt(o.metrics.likes) + " likes &middot; " + fmt(o.metrics.replies) + " replies</div>" +
         '<div class="op-actions"><button class="btn btn-primary btn-sm" data-draft="' + esc(o.id) + '">Use this idea</button>' +
         '<button class="btn btn-sm" data-reply="' + esc(o.id) + '">Draft reply</button>' +
@@ -499,7 +559,7 @@
     items.forEach(function (it) {
       var when = it.scheduled_for ? new Date(it.scheduled_for).toLocaleString() : "-";
       html += "<tr><td>" + esc(when) + '<div class="kpi-sub">' + esc(it.status || "pending") + "</div></td>" +
-        '<td><div class="post-text">' + esc((it.text || "").replace(/\s+/g, " ").slice(0, 160)) + "</div></td>" +
+        '<td><div class="post-text">' + esc(clip(it.text, 160)) + "</div></td>" +
         '<td style="white-space:nowrap"><button class="btn btn-sm" data-move="' + esc(it.id) + '">Move</button> <button class="btn btn-sm" data-cancel="' + esc(it.id) + '">Cancel</button></td></tr>';
     });
     p.innerHTML = html + "</tbody></table></div>";
@@ -607,7 +667,9 @@
       var formats = await mcp("get_format_performance", {});
       await sleep(CALL_SPACING);
       var niches = await mcp("get_niche_performance", {});
-      var data = { analytics: analytics, formats: formats, niches: niches, cap: store.overview && store.overview.cap };
+      await sleep(CALL_SPACING);
+      var voice = await mcp("get_voice_profile", {});
+      var data = { analytics: analytics, formats: formats, niches: niches, voice: voice && voice.voice ? voice.voice : voice, cap: store.overview && store.overview.cap };
       store.overview = data; store.freshest = Date.now();
       cacheSet("overview", data); lsSet("freshest", store.freshest);
       if (currentTab() === "overview") renderOverview(data, {});

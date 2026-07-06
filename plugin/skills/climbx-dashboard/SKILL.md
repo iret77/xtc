@@ -1,6 +1,6 @@
 ---
 name: climbx-dashboard
-description: Open the ClimbX dashboard, a live analytics cockpit inside Cowork. Use for "show my X dashboard", "open the ClimbX dashboard", "how are my posts doing", "show my analytics", or "dashboard". Publishes a single-file artifact with overview KPIs, recent posts, and format and niche performance, cached for instant load and refreshed in the background.
+description: Open the ClimbX dashboard, a live analytics cockpit inside Cowork. Use for "show my X dashboard", "open the ClimbX dashboard", "how are my posts doing", "show my analytics", or "dashboard". Publishes a single-file artifact with overview KPIs, recent posts, format and niche performance, your voice and cadence, and the weekly posting schedule, cached for instant load and refreshed in the background.
 ---
 
 # ClimbX dashboard
@@ -32,8 +32,9 @@ republish is only needed to pick up a new template version.
 
 ## What the artifact does itself
 
-- Reads `get_analytics`, `list_posts`, `get_format_performance`, and `get_niche_performance` within
-  the read rate budget (calls spaced by about 260 ms; at most a handful per load).
+- Reads `get_analytics`, `list_posts`, `get_format_performance`, `get_niche_performance`, and
+  `get_voice_profile` (voice, cadence, and the weekly posting schedule) within the read rate budget
+  (calls spaced by about 260 ms; at most a handful per load).
 - Caches each section in `localStorage` under the `climbx_default_` keys with a 6 hour TTL, renders
   the cached state instantly, then refreshes in the background and shows "updated Xs ago".
 - Renders designed loading skeletons, empty states, and, for `401` / `402` / `429` and connection
