@@ -21,8 +21,8 @@ First read `${CLAUDE_PLUGIN_ROOT}/shared/contracts.md` (storage, snapshots, loca
    `${CLAUDE_PLUGIN_ROOT}/skills/climbx-dashboard/references/dashboard.html` and publish it as a
    Cowork artifact. The file is fully self-contained (Chart.js is vendored inline; there are no
    external network requests). Do not edit or inject data into it; it fetches its own data at runtime
-   through `window.cowork.callMcpTool(...)`, resolving the tool-name prefix at runtime (the
-   climbx-mcp Desktop extension in Cowork, or the plugin-bundled server in Claude Code).
+   through `window.cowork.callMcpTool(...)`, resolving the tool-name prefix at runtime (the plugin
+   launches its own climbx-mcp server, so the tools resolve the same way in Cowork and Claude Code).
 
 ## Refresh
 

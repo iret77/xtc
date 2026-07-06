@@ -5,20 +5,35 @@ on:
     branches: [main]
   pull_request:
 
+# The MCP server and its unit tests live in iret77/climbx-mcp, which runs its
+# own CI. This repo now holds only the Cowork plugin, so CI validates the
+# plugin: the manifests parse, the dashboard artifact script is syntactically
+# valid, and the plugin bundles.
 jobs:
   tests:
     name: tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: mcp
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: mcp/package-lock.json
-      - run: npm ci
-      - run: npm run build
-      - run: npm test
+      - name: Plugin manifests are valid JSON
+        run: |
+          for f in plugin/.claude-plugin/plugin.json plugin/.mcp.json; do
+            node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))"
+            echo "ok: $f"
+          done
+      - name: Dashboard artifact script parses
+        run: |
+          node -e "
+            const fs = require('fs');
+            const html = fs.readFileSync('plugin/skills/climbx-dashboard/references/dashboard.html', 'utf8');
+            const m = html.match(/<script>([\s\S]*?)<\/script>/);
+            if (!m) { throw new Error('no <script> block in dashboard.html'); }
+            fs.writeFileSync('dashboard-app.js', m[1]);
+          "
+          node --check dashboard-app.js
+          rm -f dashboard-app.js
+      - name: Plugin bundles
+        run: ./script/build-plugin

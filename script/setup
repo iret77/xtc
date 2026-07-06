@@ -2,10 +2,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "Installing dependencies..."
-(cd mcp && npm install)
-
+# This repo holds the Cowork plugin; it has no build step and no dependencies
+# to install. The MCP server it uses lives in iret77/climbx-mcp.
 echo "Configuring git hooks..."
 git config core.hooksPath .hooks
 
-echo "Done."
+echo "Done. Build the plugin bundle with: ./script/build-plugin"

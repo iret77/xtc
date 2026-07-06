@@ -1,6 +1,0 @@
-# Dev-only files, excluded from the .mcpb bundle
-src/
-test/
-tsconfig.json
-.gitignore
-*.mcpb

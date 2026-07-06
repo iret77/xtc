@@ -12,7 +12,7 @@ The plugin follows the Claude plugin schema (shared by Claude Code and Cowork). 
 plugin/
 ├── .claude-plugin/
 │   └── plugin.json          # name: climbx-cowork, semver, description, author, license, repository
-├── .mcp.json                # bundled MCP server wiring (see D2/D3)
+├── .mcp.json                # MCP server wiring: npx github:iret77/climbx-mcp (see D2/D3)
 ├── skills/
 │   ├── climbx/              # core orchestrator skill (issue #13)
 │   ├── climbx-setup/        # first-run setup (issue #21)
@@ -27,7 +27,6 @@ plugin/
 │   ├── guardrails.md        # write-confirmation protocol, cap rules, draft guards
 │   ├── api-notes.md         # tool cheat sheet, limits, error playbook
 │   └── contracts.md         # copy of the shared contracts relevant at runtime
-├── mcp-server/              # built copy of climbx-mcp (dist + prod deps), created by the build script
 └── README.md
 ```
 
@@ -55,7 +54,7 @@ Field finding (2026-07), corrected: Claude Desktop does **not** start a plugin M
 }
 ```
 
-The API key reaches the server through the plugin's `CLIMBX_API_KEY` user config (OS keychain) as `${user_config.CLIMBX_API_KEY}`, or the server's own `~/.climbx/api_key` fallback. The dashboard artifact resolves the tool-name prefix at runtime by probing, so it works whichever way the server is connected (plugin, or the `climbx-mcp` Desktop extension). The server keeps the guardrail layer the skills rely on (URL rejection before a cap slot is spent, strict ISO datetimes, https-only images, error hints, request timeout, base-url guard). The official remote MCP (`https://climbx.so/mcp`) stays documented as an alternative.
+The API key reaches the server through the plugin's `CLIMBX_API_KEY` user config (OS keychain) as `${user_config.CLIMBX_API_KEY}`, or the server's own `~/.climbx/api_key` fallback. The dashboard artifact resolves the tool-name prefix at runtime by probing, so it works whichever host the plugin's server runs in (Cowork or Claude Code). The server keeps the guardrail layer the skills rely on (URL rejection before a cap slot is spent, strict ISO datetimes, https-only images, error hints, request timeout, base-url guard). The official remote MCP (`https://climbx.so/mcp`) stays documented as an alternative.
 
 ## D3: API key handling
 

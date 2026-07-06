@@ -15,7 +15,7 @@ dashboard. It targets Claude Cowork and also runs in plain Claude Code.
   read & write key is needed for publishing, scheduling, and reply drafting; a read-only key works
   for analytics and scanning.
 - For the opportunity radar: a few creators tracked in your ClimbX Following feed.
-- Only for plain Claude Code (not Cowork): Node.js 20 or newer for the plugin-bundled MCP server.
+- Node.js 20 or newer: the plugin fetches and runs its MCP server with `npx` (same in Cowork and Claude Code).
 
 ## Install
 
@@ -33,18 +33,14 @@ for raw tool access.
 
 ## Setup (first run)
 
-The plugin provides the skills and the dashboard; the ClimbX tools come from the **climbx-mcp
-Desktop extension**:
+The plugin provides the skills, the dashboard, and the MCP server wiring. You install only the one
+plugin; there is no separate extension to add.
 
-1. Download [`climbx-mcp.mcpb`](https://github.com/iret77/climbx-cowork/releases/latest/download/climbx-mcp.mcpb)
-   from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest) and open it
-   with Claude Desktop (Settings > Extensions).
-2. Enter your ClimbX API key when prompted; it is stored in the OS keychain.
-3. Restart Claude Desktop, then say "set up ClimbX" in Cowork to validate the account and write
-   your preferences.
-
-In plain Claude Code the plugin-bundled server starts automatically instead (key from
-`CLIMBX_API_KEY` or `~/.climbx/api_key`); the extension is not needed there.
+1. Enter your ClimbX API key in the plugin's configuration when prompted (stored in the OS keychain),
+   or place it in `~/.climbx/api_key` (mode 0600).
+2. On the first tool call the plugin runs `npx github:iret77/climbx-mcp`, which fetches and caches the
+   server (needs Node and network once). This works the same in Cowork and plain Claude Code.
+3. Say "set up ClimbX" to validate the account and write your preferences.
 
 ## The workflows
 

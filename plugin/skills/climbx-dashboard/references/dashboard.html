@@ -1,7 +1,7 @@
 <!--
   ClimbX dashboard, single-file Cowork artifact.
   Data comes exclusively from window.cowork.callMcpTool with the ClimbX MCP tools; the
-  tool-name prefix is resolved at runtime (Desktop extension or plugin-bundled server).
+  tool-name prefix is resolved at runtime (it varies by host, so it is probed, not hardcoded).
   Chart.js (MIT) is vendored inline at the end of <body>; there are zero external
   network requests. Design tokens and localStorage keys follow the plugin contracts.
 -->
@@ -240,9 +240,9 @@
   }
   function McpError(text) { this.raw = text || "API error"; this.code = classifyError(text); }
 
-  // The ClimbX tools can come from the climbx-mcp Desktop extension (namespace like
-  // mcp__ClimbX__*) or, in plain Claude Code, from the plugin-bundled server
-  // (mcp__plugin_climbx-cowork_climbx__*). The exact prefix is host-dependent, so it is
+  // The ClimbX tools come from the plugin's own MCP server, namespaced
+  // mcp__plugin_climbx-cowork_climbx__*. A few legacy namespaces (e.g. mcp__ClimbX__ from an
+  // older Desktop extension) are kept as fallbacks. The exact prefix is host-dependent, so it is
   // resolved once per load by probing a cheap read tool instead of being hardcoded.
   var TOOL_PREFIX_CANDIDATES = [
     "mcp__plugin_climbx-cowork_climbx__",
@@ -267,7 +267,7 @@
         } catch (e) { /* try the next candidate */ }
       }
       _prefixProbe = null;
-      throw new McpError("No ClimbX MCP server is connected. Install the climbx-mcp Desktop extension (Settings > Extensions), enter your API key, and restart Claude.");
+      throw new McpError("No ClimbX MCP server is connected. Enter your ClimbX API key in the plugin configuration (or place it in ~/.climbx/api_key) and restart Claude.");
     })();
     return _prefixProbe;
   }
