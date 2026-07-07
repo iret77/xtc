@@ -138,9 +138,9 @@
   .ind-up::before { content: "\25B2 "; color: var(--positive); }
   .ind-down::before { content: "\25BC "; color: var(--negative); }
   .post-text { color: var(--text); line-height: 1.45; max-width: 460px; }
-  .persona { color: var(--text); line-height: 1.55; font-size: 13px; white-space: pre-wrap; max-height: 260px; overflow-y: auto; }
+  .persona { color: var(--text); line-height: 1.55; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow-y: auto; }
   .slots { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-  .slot { border: 1px solid var(--border); border-radius: 8px; padding: 10px 6px; text-align: center; }
+  .slot { border: 1px solid var(--border); border-radius: 8px; padding: 10px 6px; text-align: center; min-width: 0; overflow-wrap: anywhere; }
   .slot-day { color: var(--muted); font-size: 12px; font-weight: 600; margin-bottom: 6px; }
   .slot-time { font-size: 13px; font-variant-numeric: tabular-nums; margin-top: 2px; }
   @media (max-width: 560px) { .slots { grid-template-columns: repeat(4, 1fr); } }
@@ -216,14 +216,19 @@
   // Humanize an internal label: strip wrapping underscores, spaces for underscores,
   // capitalize. "__unlabeled__" -> "Unlabeled", "genuine_question" -> "Genuine question".
   function labelize(s) {
-    s = String(s == null ? "" : s).replace(/^_+|_+$/g, "").replace(/_/g, " ").trim();
+    s = String(s == null ? "" : s).replace(/^_+|_+$/g, "").replace(/_+/g, " ").trim();
     if (!s) return "Unlabeled";
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
   // Grapheme-aware truncation so emoji / surrogate pairs are never split in half.
   function clip(s, n) {
-    var chars = Array.from(String(s == null ? "" : s).replace(/\s+/g, " ").trim());
-    return chars.length > n ? chars.slice(0, n).join("").replace(/\s+$/, "") + "…" : chars.join("");
+    var str = String(s == null ? "" : s).replace(/\s+/g, " ").trim();
+    // Prefer full grapheme segmentation (keeps ZWJ emoji, flags, combining marks
+    // whole); fall back to code points, which at least never split a surrogate pair.
+    var units = (typeof Intl !== "undefined" && Intl.Segmenter)
+      ? Array.from(new Intl.Segmenter().segment(str), function (x) { return x.segment; })
+      : Array.from(str);
+    return units.length > n ? units.slice(0, n).join("").replace(/\s+$/, "") + "…" : units.join("");
   }
   // Performance metrics arrive as { value, trend } (or a bare number on older shapes).
   function metricVal(m) { return m && typeof m === "object" ? m.value : m; }
@@ -398,8 +403,9 @@
   // exposes no owner handle, so drop the placeholder cleanly rather than showing it.
   function sanitizePersona(text) {
     return String(text == null ? "" : text)
-      .replace(/@?<handle>,\s*/g, "")
-      .replace(/@?<handle>/g, "you")
+      .replace(/@?<handle>,\s*/g, "")     // "You're @<handle>, an ..." -> "You're an ..."
+      .replace(/\s*@?<handle>\s*/g, " ")  // remove any remaining occurrence entirely
+      .replace(/\s{2,}/g, " ")
       .trim();
   }
   function renderVoiceCadence(voice) {
@@ -667,9 +673,12 @@
       var formats = await mcp("get_format_performance", {});
       await sleep(CALL_SPACING);
       var niches = await mcp("get_niche_performance", {});
-      await sleep(CALL_SPACING);
-      var voice = await mcp("get_voice_profile", {});
-      var data = { analytics: analytics, formats: formats, niches: niches, voice: voice && voice.voice ? voice.voice : voice, cap: store.overview && store.overview.cap };
+      // Voice is secondary: a failure here must not discard the analytics refresh,
+      // so fetch it in its own guard and keep the last-known value on error.
+      var voice = store.overview && store.overview.voice ? store.overview.voice : null;
+      try { await sleep(CALL_SPACING); var vp = await mcp("get_voice_profile", {}); voice = vp && vp.voice ? vp.voice : vp; }
+      catch (ve) { /* keep last-known voice */ }
+      var data = { analytics: analytics, formats: formats, niches: niches, voice: voice, cap: store.overview && store.overview.cap };
       store.overview = data; store.freshest = Date.now();
       cacheSet("overview", data); lsSet("freshest", store.freshest);
       if (currentTab() === "overview") renderOverview(data, {});
