@@ -95,7 +95,7 @@ keeps local, diffable copies of your voice profile and learnings.
 
 | You see | What it means and what to do |
 |---|---|
-| No API key found | Run setup; create a key in ClimbX under Settings > API and place it in `~/.climbx/api_key`. |
+| No API key found | Create a key in ClimbX under Settings > API and enter it in the plugin configuration (or place it in `~/.climbx/api_key`), then run setup. |
 | invalid_key | The key is unknown or revoked; create a new one and replace the file. |
 | subscription_required | The ClimbX plan lapsed; check the account at climbx.so. |
 | read_only_key | Analytics work; mint a read & write key for shipping and engage. |

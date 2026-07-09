@@ -20,6 +20,12 @@ check(typeof manifest.description === "string" && manifest.description.length > 
 check(manifest.license, "plugin.json: license missing");
 const userConfig = manifest.userConfig || {};
 check(userConfig.CLIMBX_API_KEY, "plugin.json: userConfig.CLIMBX_API_KEY missing");
+// The plugin is non-functional without a key, so it must be a required, secret
+// string: otherwise Cowork installs without prompting and every tool call fails.
+const keyCfg = userConfig.CLIMBX_API_KEY || {};
+check(keyCfg.required === true, "plugin.json: userConfig.CLIMBX_API_KEY.required must be true so Cowork prompts for the key on install");
+check(keyCfg.type === "string", "plugin.json: userConfig.CLIMBX_API_KEY.type must be \"string\"");
+check(keyCfg.sensitive === true, "plugin.json: userConfig.CLIMBX_API_KEY.sensitive must be true (the key is a secret)");
 
 // --- .mcp.json ---
 const mcp = readJson("plugin/.mcp.json");

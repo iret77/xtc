@@ -1,6 +1,6 @@
 {
   "name": "climbx-cowork",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "ClimbX companion for Claude Cowork: turn niche outliers into voice-true X posts, schedule and track them, all backed by the ClimbX API.",
   "author": {
     "name": "iret77",
@@ -23,9 +23,9 @@
     "CLIMBX_API_KEY": {
       "type": "string",
       "title": "ClimbX API key",
-      "description": "Create one in the ClimbX app under Settings > API (shown once). Stored in the OS keychain. Optional if you instead place the key in ~/.climbx/api_key.",
+      "description": "Required. Create one in the ClimbX app under Settings > API (shown once). Stored in the OS keychain. (In plain Claude Code you can instead use the CLIMBX_API_KEY env var or a ~/.climbx/api_key file.)",
       "sensitive": true,
-      "required": false
+      "required": true
     }
   }
 }
