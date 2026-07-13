@@ -11,7 +11,7 @@ literal tilde.
 
 | Path | Content | Written by |
 |---|---|---|
-| `~/.climbx/api_key` | The ClimbX API key, mode 0600, no trailing newline | setup skill (or the user) |
+| `~/.climbx/api_key` | The ClimbX API key, mode 0600, no trailing newline | the MCP server's guided key setup (`begin_key_setup`), or the user |
 | `~/.climbx/config.json` | User preferences (see Config) | setup skill, edited on request |
 | `~/.climbx/seen.json` | Opportunities already shown (see seen.json) | scan skill |
 | `~/.climbx/snapshots/<UTC ISO, colons replaced by dashes>.json` | Voice and learnings snapshots | snapshot skill |

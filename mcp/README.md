@@ -16,7 +16,7 @@ No install and no npm account needed: `npx` fetches and runs the committed bundl
 CLIMBX_API_KEY=climbx_sk_... npx -y github:iret77/climbx-mcp
 ```
 
-Point any MCP client at that command. The full setup, the 16-tool list, the API limits, and every configuration option live in the [climbx-mcp README](https://github.com/iret77/climbx-mcp#readme).
+Point any MCP client at that command. The full setup, the 18-tool list, the API limits, and every configuration option live in the [climbx-mcp README](https://github.com/iret77/climbx-mcp#readme).
 
 Requirements: a ClimbX account on an active plan or trial, an API key (create one in the app under **Settings > API**, the full key is shown only once), and Node.js >= 20. The key can also be placed in `~/.climbx/api_key` (mode 0600) instead of the environment.
 

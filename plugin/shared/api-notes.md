@@ -7,7 +7,13 @@ to a tool by its bare name (`get_voice_profile`); Claude resolves it to whicheve
 connected. Only the dashboard artifact, which calls tools programmatically, probes for the right
 prefix at runtime. All data access goes through these tools; never call the ClimbX HTTP API directly.
 
-## Tools (16)
+## Tools (18)
+
+### Setup and key status
+| Tool | When to use |
+|---|---|
+| `get_key_status` | Whether a key is configured and from which source; local and instant, never reveals the key. First call in setup and when diagnosing auth errors. |
+| `begin_key_setup` | Starts the guided key setup: returns a one-time `127.0.0.1` URL where the user pastes their key into a masked field. The server validates it live, stores it locally, applies it without restart, and shuts the page down (it also expires after 10 minutes and never outlives the server). Never ask for the key in the chat. |
 
 ### Read: analytics, voice, learnings
 | Tool | When to use |
@@ -65,7 +71,7 @@ prefix at runtime. All data access goes through these tools; never call the Clim
 
 | Code | Say and do |
 |---|---|
-| missing key / invalid_key | Point to the setup skill; the key is created in ClimbX under Settings > API. |
+| missing key / invalid_key | Run the guided setup (`begin_key_setup`, key created in ClimbX under Settings > API); never ask for the key in the chat. |
 | subscription_required | The ClimbX plan lapsed; check the account at climbx.so. |
 | read_only_key | The key is read-only; mint a read & write key for shipping and engage. |
 | x_not_connected / x_token_expired | Reconnect X inside the ClimbX web app, then retry. |

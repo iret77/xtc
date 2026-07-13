@@ -27,20 +27,23 @@ from the [latest release](https://github.com/iret77/climbx-cowork/releases/lates
 The plugin does not bundle the server: `.mcp.json` launches it with
 `npx -y github:iret77/climbx-mcp`, which fetches and caches the self-contained
 [climbx-mcp](https://github.com/iret77/climbx-mcp) server on first run (needs Node and network once).
-Enter your ClimbX API key in the plugin's configuration when prompted (stored in the OS keychain), or
-place it in `~/.climbx/api_key`. ClimbX also hosts an official remote MCP at `https://climbx.so/mcp`
-for raw tool access.
+You do not need to configure anything by hand; the first conversation sets up the API key for you.
+ClimbX also hosts an official remote MCP at `https://climbx.so/mcp` for raw tool access.
 
 ## Setup (first run)
 
 The plugin provides the skills, the dashboard, and the MCP server wiring. You install only the one
-plugin; there is no separate extension to add.
+plugin; there is no separate extension to add, no terminal, and no hidden folders.
 
-1. Enter your ClimbX API key in the plugin's configuration when prompted (stored in the OS keychain),
-   or place it in `~/.climbx/api_key` (mode 0600).
-2. On the first tool call the plugin runs `npx -y github:iret77/climbx-mcp`, which fetches and caches the
-   server (needs Node and network once). This works the same in Cowork and plain Claude Code.
-3. Say "set up ClimbX" to validate the account and write your preferences.
+1. Say "set up ClimbX". Claude gives you a private link that opens a small page served locally on
+   your own machine; paste your ClimbX API key there (create it in the ClimbX app under
+   **Settings > API**; the full key is shown only once). The page checks the key with ClimbX,
+   stores it on your computer, and closes itself; the key never appears in the chat.
+2. The setup then validates your account live and writes your preferences; it ends by offering a
+   first scan or the dashboard.
+
+Power users can skip the guided page and instead set the `CLIMBX_API_KEY` environment variable or
+place the key in `~/.climbx/api_key` (mode 0600); the server picks either up automatically.
 
 ## The workflows
 
@@ -95,8 +98,8 @@ keeps local, diffable copies of your voice profile and learnings.
 
 | You see | What it means and what to do |
 |---|---|
-| No API key found | Create a key in ClimbX under Settings > API and enter it in the plugin configuration (or place it in `~/.climbx/api_key`), then run setup. |
-| invalid_key | The key is unknown or revoked; create a new one and replace the file. |
+| No API key configured | Say "set up ClimbX": Claude hands you a private local link where you paste the key (created in ClimbX under Settings > API). No restart needed. |
+| invalid_key | The key is unknown or revoked; create a new one in ClimbX and run "set up ClimbX" again. |
 | subscription_required | The ClimbX plan lapsed; check the account at climbx.so. |
 | read_only_key | Analytics work; mint a read & write key for shipping and engage. |
 | x_not_connected / x_token_expired | Reconnect X inside the ClimbX web app, then retry. |
@@ -107,6 +110,9 @@ keeps local, diffable copies of your voice profile and learnings.
 
 ## Privacy
 
-Your API key stays on your machine: it lives in `~/.climbx/api_key` (mode 0600) or an environment
-variable, never in a config file or this repo. All plugin state (config, seen opportunities,
+Your API key stays on your machine: you enter it on a page served locally by the MCP server (never
+in the chat), and it lives in `~/.climbx/api_key` (mode 0600) or an environment variable, never in a
+config file or this repo. The setup page runs inside the MCP server process on `127.0.0.1` with a
+one-time link, shuts down as soon as the key is saved (or after 10 minutes), and cannot outlive the
+server, so nothing keeps running in the background. All plugin state (config, seen opportunities,
 snapshots) is local under `~/.climbx/`. Data goes only to the ClimbX API you already use.
