@@ -24,9 +24,11 @@ Install the plugin (skills, dashboard, and the MCP server wiring) in Claude Cowo
 from the [latest release](https://github.com/iret77/climbx-cowork/releases/latest), or build it with
 `script/build-plugin`.
 
-The plugin does not bundle the server: `.mcp.json` launches it with
-`npx -y github:iret77/climbx-mcp`, which fetches and caches the self-contained
-[climbx-mcp](https://github.com/iret77/climbx-mcp) server on first run (needs Node and network once).
+The plugin bundles the server (`mcp-server/index.mjs`, a pinned self-contained build of
+[climbx-mcp](https://github.com/iret77/climbx-mcp)) and `.mcp.json` starts it through a local
+launcher (`scripts/launch.sh`) that locates Node itself. Nothing is fetched at launch, so it needs
+no network and does not depend on the GUI shell PATH; it only needs Node 20+ present on the machine
+(Homebrew, nvm, or PATH; or set `CLIMBX_NODE` to a node binary).
 You do not need to configure anything by hand; the first conversation sets up the API key for you.
 ClimbX also hosts an official remote MCP at `https://climbx.so/mcp` for raw tool access.
 

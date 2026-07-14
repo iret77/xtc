@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "climbx": {
-      "command": "npx",
-      "args": ["-y", "github:iret77/climbx-mcp#v0.5.0"],
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/launch.sh",
+      "args": [],
       "env": {
         "CLIMBX_API_KEY": "${user_config.CLIMBX_API_KEY}"
       }

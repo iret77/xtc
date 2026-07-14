@@ -12,7 +12,11 @@ The plugin follows the Claude plugin schema (shared by Claude Code and Cowork). 
 plugin/
 ├── .claude-plugin/
 │   └── plugin.json          # name: climbx-cowork, semver, description, author, license, repository
-├── .mcp.json                # MCP server wiring: npx -y github:iret77/climbx-mcp (see D2/D3)
+├── .mcp.json                # MCP wiring: plugin-local launcher -> bundled server (see D2/D3)
+├── scripts/
+│   └── launch.sh            # resolves Node without the GUI PATH, execs the bundled server (D2)
+├── mcp-server/              # bundled climbx-mcp (build output; fetched + sha-pinned by script/build-plugin)
+│   └── index.mjs
 ├── skills/
 │   ├── climbx/              # core orchestrator skill (issue #13)
 │   ├── climbx-setup/        # first-run setup (issue #21)
@@ -34,18 +38,16 @@ plugin/
 
 Skills keep their SKILL.md lean and reference `${CLAUDE_PLUGIN_ROOT}/shared/*.md` for shared rules. Never hardcode absolute paths; always use the plugin root variable.
 
-## D2: MCP wiring: server fetched by npx from its own repo
+## D2: MCP wiring: bundled server, launched by a plugin-local launcher
 
-The plugin declares its MCP server in `.mcp.json` and launches it with `npx -y github:iret77/climbx-mcp#v0.5.0`, which fetches and caches the self-contained [climbx-mcp](https://github.com/iret77/climbx-mcp) package (a committed esbuild bundle, no install step) on first run. The ref is **pinned to a tag** (`#v0.5.0`) rather than tracking the default branch, so a later commit to climbx-mcp cannot change what installed plugins run; bump the pin deliberately when adopting a new server release.
-
-Field finding (2026-07), corrected: Claude Desktop does **not** start a plugin MCP server that points at a plugin-local file (`${CLAUDE_PLUGIN_ROOT}/...`) in Cowork; on the verification system such a server never spawned (no log at all). The earlier "GUI PATH lacks node" diagnosis was wrong: the sibling mcp-marketdata plugin launches its server via `uvx --from git+ssh://...` from the same `/opt/homebrew/bin`, so `node` resolves fine; the real difference is that a plugin-local path is not reachable by the host-side spawn, while a remote-fetched server (uvx/npx from git or npm) is. This wiring mirrors the working mcp-marketdata pattern, verified with a live `npx -y github:iret77/climbx-mcp` connect (16 tools).
+The plugin ships the [climbx-mcp](https://github.com/iret77/climbx-mcp) server as a self-contained esbuild bundle at `mcp-server/index.mjs` and launches it through a plugin-local launcher script. The bundle is fetched from the **pinned** climbx-mcp tag (`v0.5.0`) at build time and verified against a pinned sha256 (`script/build-plugin`), so a moved tag or corrupted download fails the build and installed plugins cannot be changed by a later push to climbx-mcp; bump the pin deliberately when adopting a new server release.
 
 ```json
 {
   "mcpServers": {
     "climbx": {
-      "command": "npx",
-      "args": ["-y", "github:iret77/climbx-mcp#v0.5.0"],
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/launch.sh",
+      "args": [],
       "env": {
         "CLIMBX_API_KEY": "${user_config.CLIMBX_API_KEY}"
       }
@@ -54,7 +56,11 @@ Field finding (2026-07), corrected: Claude Desktop does **not** start a plugin M
 }
 ```
 
-The API key reaches the server through the guided key setup built into the server (see D3.1; persisted to `~/.climbx/api_key`), through the plugin's `CLIMBX_API_KEY` user config as `${user_config.CLIMBX_API_KEY}` where a host implements the prompt, or through the env var directly. The dashboard artifact resolves the tool-name prefix at runtime by probing, so it works whichever host the plugin's server runs in (Cowork or Claude Code). The server keeps the guardrail layer the skills rely on (URL rejection before a cap slot is spent, strict ISO datetimes, https-only images, error hints, request timeout, base-url guard). The official remote MCP (`https://climbx.so/mcp`) stays documented as an alternative.
+Field finding (2026-07, corrected twice): the earlier `npx -y github:iret77/climbx-mcp#v0.5.0` wiring **never connected** on the owner's macOS Claude Desktop / Cowork (no tools, guided setup unreachable). Two independent causes: (1) macOS spawns MCP servers **without the login shell PATH**, so a bare `node`/`npx` resolves to nothing (ENOENT, silent no-connect); (2) `npx github:` additionally needs a runtime `git clone`, which the spawn sandbox cannot do. The previous note here claimed a plugin-local `${CLAUDE_PLUGIN_ROOT}/...` path "does not spawn" -- that was **wrong**: the owner's own working plugins (`musicvideo` via `${CLAUDE_PLUGIN_ROOT}/scripts/mv-mcp-launch.sh`, `li-cache` via an absolute node path) launch from a plugin-local path fine. The real requirement is a launcher **script** (spawnable by its absolute path) that resolves the runtime itself; never a bare runtime name, and never a launch-time network fetch.
+
+`plugin/scripts/launch.sh` resolves Node without the GUI PATH (an explicit `CLIMBX_NODE` override, then common absolute locations such as `/opt/homebrew/bin/node`, then nvm, then PATH) and `exec`s the bundled server. It writes only to stderr; stdout is the JSON-RPC channel. Verified with the server connecting and listing all 18 tools under an empty environment with no PATH.
+
+The API key reaches the server through the guided key setup built into the server (see D3.1; persisted to `~/.climbx/api_key`), through the plugin's `CLIMBX_API_KEY` user config as `${user_config.CLIMBX_API_KEY}` where a host implements the prompt, or through the env var directly. The dashboard artifact resolves the tool-name prefix at runtime by probing, so it works whichever host the plugin's server runs in (Cowork or Claude Code). The server keeps the guardrail layer the skills rely on (URL rejection before a cap slot is spent, strict ISO datetimes, https-only images, error hints, request timeout, base-url guard). Running the server standalone in a shell with `npx -y github:iret77/climbx-mcp` and the official remote MCP (`https://climbx.so/mcp`) stay documented as alternatives; the git-clone limitation is specific to the PATH-less GUI plugin spawn, not to a normal shell.
 
 ## D3: API key handling
 

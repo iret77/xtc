@@ -2,19 +2,53 @@
 #
 # Package the climbx-cowork Cowork plugin into climbx-cowork.plugin.
 #
-# The plugin no longer bundles the MCP server: .mcp.json launches it with
-# `npx github:iret77/climbx-mcp`, so the archive is just the plugin components
-# (skills, shared rules, the dashboard artifact, manifests). Run from anywhere.
+# The plugin ships the MCP server as a bundled, self-contained esbuild file and
+# launches it through a plugin-local launcher (plugin/scripts/launch.sh) that
+# resolves Node itself. This is deliberate: macOS Claude Desktop / Cowork spawns
+# MCP servers without the login shell PATH, so a bare "node"/"npx" fails with
+# ENOENT and "npx github:..." cannot run its required git clone. See D2.
+#
+# The server bundle is fetched from the pinned climbx-mcp tag at build time
+# (git/network exist here; the launch path stays offline) and verified against a
+# pinned sha256, so a moved tag or corrupted download fails the build. Run from
+# anywhere.
 set -euo pipefail
+
+# --- pinned server bundle (bump both together when adopting a new server) ---
+SERVER_REF="v0.5.0"
+SERVER_SHA256="005c53398e12e54883c552d5e3d4e6fbd16d5cc3f69122e09d43f1b017a5c729"
+SERVER_URL="https://raw.githubusercontent.com/iret77/climbx-mcp/${SERVER_REF}/dist/index.mjs"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN="$ROOT/plugin"
+SERVER_DIR="$PLUGIN/mcp-server"
+LAUNCHER="$PLUGIN/scripts/launch.sh"
 ARCHIVE="$ROOT/climbx-cowork.plugin"
 
-command -v zip >/dev/null 2>&1 || { echo "build-plugin: 'zip' not found on PATH" >&2; exit 1; }
+for tool in zip curl node; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "build-plugin: '$tool' not found on PATH" >&2; exit 1; }
+done
+[ -f "$LAUNCHER" ] || { echo "build-plugin: launcher missing at $LAUNCHER" >&2; exit 1; }
+
+echo "==> Fetching pinned server bundle (climbx-mcp $SERVER_REF)"
+rm -rf "$SERVER_DIR"
+mkdir -p "$SERVER_DIR"
+curl -fsSL "$SERVER_URL" -o "$SERVER_DIR/index.mjs"
+
+echo "==> Verifying bundle sha256"
+ACTUAL="$(sha256sum "$SERVER_DIR/index.mjs" | cut -d' ' -f1)"
+if [ "$ACTUAL" != "$SERVER_SHA256" ]; then
+  echo "build-plugin: server bundle sha256 mismatch" >&2
+  echo "  expected: $SERVER_SHA256" >&2
+  echo "  actual:   $ACTUAL" >&2
+  echo "  (the pinned tag may have moved, or the download is corrupt)" >&2
+  exit 1
+fi
+node --check "$SERVER_DIR/index.mjs"
+chmod +x "$SERVER_DIR/index.mjs" "$LAUNCHER"
 
 echo "==> Zipping plugin -> $ARCHIVE"
 rm -f "$ARCHIVE"
 ( cd "$PLUGIN" && zip -r -q "$ARCHIVE" . -x '*.DS_Store' )
 
-echo "==> Done: $ARCHIVE ($(du -h "$ARCHIVE" | cut -f1))"
+echo "==> Done: $ARCHIVE ($(du -h "$ARCHIVE" | cut -f1)); server $SERVER_REF, launcher plugin-local"

@@ -24,7 +24,7 @@ Requirements: a ClimbX account on an active plan or trial, an API key (create on
 
 ## Prefer the finished workflow?
 
-The [climbx-cowork Cowork plugin](../plugin/README.md) is built on this server and turns the raw tools into scanning, drafting in your voice, guarded publishing, a reply workflow, and a live dashboard. It launches this same server for you via `npx github:iret77/climbx-mcp`, so you install only the one plugin.
+The [climbx-cowork Cowork plugin](../plugin/README.md) is built on this server and turns the raw tools into scanning, drafting in your voice, guarded publishing, a reply workflow, and a live dashboard. It bundles and launches this same server for you, so you install only the one plugin.
 
 ## License
 

@@ -18,7 +18,7 @@ Activates the repo's git hooks (`core.hooksPath = .hooks`). This repo has no bui
 
 ## Working on the MCP server
 
-The server is no longer in this repo. It lives in [iret77/climbx-mcp](https://github.com/iret77/climbx-mcp) with its own source, tests, and CI. The plugin launches it via `npx github:iret77/climbx-mcp`; see the `.mcp.json` in `plugin/`.
+The server is no longer in this repo. It lives in [iret77/climbx-mcp](https://github.com/iret77/climbx-mcp) with its own source, tests, and CI. The plugin bundles a pinned build of it (`plugin/mcp-server/index.mjs`, fetched and sha-verified by `script/build-plugin`) and launches it through `plugin/scripts/launch.sh`; see the `.mcp.json` in `plugin/` and D2 in `docs/plugin/architecture.md`.
 
 `CLIMBX_API_KEY` is provided via environment variable or the `~/.climbx/api_key` file only. Never commit keys, tokens, or `.env` files.
 

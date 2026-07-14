@@ -3,7 +3,7 @@
 // Goes beyond "is it valid JSON" to check the things that actually break installs:
 // manifest completeness, the .mcp.json wiring, the userConfig coupling, and that
 // the dashboard artifact parses and stays self-contained.
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -36,17 +36,27 @@ const mcp = readJson("plugin/.mcp.json");
 const srv = mcp.mcpServers && mcp.mcpServers.climbx;
 check(srv, ".mcp.json: mcpServers.climbx missing");
 if (srv) {
-  check(srv.command === "npx", `.mcp.json: expected command "npx", got ${JSON.stringify(srv.command)}`);
-  const args = Array.isArray(srv.args) ? srv.args : [];
-  check(args.includes("-y"), ".mcp.json: args must include -y (non-interactive npx)");
-  const ref = args.find((a) => typeof a === "string" && a.startsWith("github:iret77/climbx-mcp"));
-  check(ref, ".mcp.json: args must reference github:iret77/climbx-mcp");
-  // Must be pinned to a version tag (#vX.Y.Z) or a commit sha, not a branch or an
-  // arbitrary ref, so installed plugins cannot be moved by a later push to climbx-mcp.
+  // The server is launched through a plugin-local launcher, NOT a bare runtime
+  // and NOT a network fetch. macOS Claude Desktop / Cowork spawns MCP servers
+  // without the login shell PATH: a bare "node"/"npx" resolves to nothing
+  // (ENOENT, silent no-connect) and "npx github:..." cannot run its git clone.
+  // The launcher (referenced by an absolute ${CLAUDE_PLUGIN_ROOT} path) IS
+  // spawnable and resolves Node itself. See D2.
+  const LAUNCHER = "${CLAUDE_PLUGIN_ROOT}/scripts/launch.sh";
   check(
-    ref && /#(v\d+\.\d+\.\d+|[0-9a-f]{7,40})$/.test(ref),
-    `.mcp.json: the climbx-mcp ref must be pinned to a version tag (#vX.Y.Z) or a commit sha (got ${ref}); a branch or bare ref is not allowed`,
+    srv.command === LAUNCHER,
+    `.mcp.json: command must be the plugin-local launcher ${JSON.stringify(LAUNCHER)} (a bare node/npx or "npx github:" does not spawn on a PATH-less macOS host), got ${JSON.stringify(srv.command)}`,
   );
+  const args = Array.isArray(srv.args) ? srv.args : [];
+  const badRef = [srv.command, ...args].find((a) => typeof a === "string" && a.includes("github:"));
+  check(!badRef, `.mcp.json: the server must be bundled and launched locally, not fetched at launch (found ${JSON.stringify(badRef)})`);
+  // The launcher must exist and be executable, or the host cannot spawn it.
+  const launcherPath = "plugin/scripts/launch.sh";
+  const launcherAbs = join(root, launcherPath);
+  check(existsSync(launcherAbs), `${launcherPath}: launcher script missing (referenced by .mcp.json command)`);
+  if (existsSync(launcherAbs)) {
+    check((statSync(launcherAbs).mode & 0o111) !== 0, `${launcherPath}: launcher must be executable (chmod +x)`);
+  }
   // userConfig coupling: every ${user_config.KEY} referenced must be declared.
   const env = srv.env || {};
   for (const val of Object.values(env)) {

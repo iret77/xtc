@@ -16,11 +16,12 @@ First read `${CLAUDE_PLUGIN_ROOT}/shared/contracts.md` (storage, config) and
 Check whether the ClimbX MCP tools are available (for example `get_key_status`, under any
 namespace). If they are, go to step 2.
 
-If not: the plugin launches its MCP server itself with `npx -y github:iret77/climbx-mcp` (no
-separate install), so the tools appear on their own once the plugin is enabled and Claude is
-restarted. The `npx` launch needs Node 20+ and network on first run (it fetches and caches the
-server). If the tools are still missing after a restart, that is an environment problem (Node
-missing or no network), not a key problem; solve it first.
+If not: the plugin bundles its MCP server and starts it through a local launcher
+(`scripts/launch.sh`), so the tools appear on their own once the plugin is enabled (a Claude
+restart may be needed). The launcher needs Node 20+ on the machine and finds it in the usual
+places (Homebrew, nvm, PATH); it fetches nothing at launch. If the tools are still missing after a
+restart, that is an environment problem, not a key problem: make sure Node 20+ is installed, or set
+`CLIMBX_NODE` to its path (for example `/opt/homebrew/bin/node`); solve that first.
 
 ## 2. Is a key configured?
 

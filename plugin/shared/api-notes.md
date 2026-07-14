@@ -1,7 +1,7 @@
 # API notes
 
-Cheat sheet for the ClimbX MCP tools. The plugin launches its own climbx-mcp server via
-`npx -y github:iret77/climbx-mcp`, so the same tools are available in both Claude Cowork and Claude
+Cheat sheet for the ClimbX MCP tools. The plugin bundles and launches its own climbx-mcp server,
+so the same tools are available in both Claude Cowork and Claude
 Code under the plugin namespace (`mcp__plugin_climbx-cowork_climbx__<tool>`). In conversation, refer
 to a tool by its bare name (`get_voice_profile`); Claude resolves it to whichever server is
 connected. Only the dashboard artifact, which calls tools programmatically, probes for the right

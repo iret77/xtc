@@ -4,3 +4,6 @@ CLAUDE.local.md
 
 # Plugin build output (rebuilt on demand by script/build-plugin for manual upload).
 *.plugin
+
+# Bundled MCP server, fetched from the pinned climbx-mcp tag by script/build-plugin.
+plugin/mcp-server/
