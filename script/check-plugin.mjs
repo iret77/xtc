@@ -3,7 +3,7 @@
 // Goes beyond "is it valid JSON" to check the things that actually break installs:
 // manifest completeness, the .mcp.json wiring, the userConfig coupling, and that
 // the dashboard artifact parses and stays self-contained.
-import { readFileSync, existsSync, statSync } from "node:fs";
+import { readFileSync, existsSync, statSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -77,6 +77,29 @@ if (block) {
   // Regression guards for fixes that are easy to silently undo.
   check(!/\bDONE_TABS\b/.test(app), "dashboard.html: DONE_TABS reintroduced (dead code)");
   check(/function resolveSendPrompt\b/.test(app), "dashboard.html: resolveSendPrompt missing (chat-handoff robustness regressed)");
+}
+
+// --- commands <-> skills coupling ---
+// A plugin SKILL is only auto-invoked by the model; it is NOT a typeable slash
+// command. In Claude Desktop / Cowork, typing `/climbx-setup` for a skill that
+// has no matching command errors with "Unknown command" (field finding 2026-07,
+// shipped unnoticed in v1.4.0/1.4.1). Every public skill must therefore have a
+// typeable command under commands/ that delegates to it, or users have no
+// reliable entry point. This guard fails the build if that coupling regresses.
+const skillsDir = join(root, "plugin/skills");
+const commandsDir = join(root, "plugin/commands");
+const skillNames = existsSync(skillsDir)
+  ? readdirSync(skillsDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)
+  : [];
+for (const name of skillNames) {
+  const cmdPath = join(commandsDir, `${name}.md`);
+  check(existsSync(cmdPath), `plugin/commands/${name}.md missing: skill "${name}" has no typeable slash command (typing /${name} would return "Unknown command")`);
+  if (existsSync(cmdPath)) {
+    const body = readFileSync(cmdPath, "utf8");
+    const fm = body.match(/^---\n([\s\S]*?)\n---/);
+    check(fm, `plugin/commands/${name}.md: missing YAML frontmatter (--- ... ---)`);
+    check(fm && /^description:\s*\S/m.test(fm[1]), `plugin/commands/${name}.md: frontmatter needs a non-empty description`);
+  }
 }
 
 if (errors.length) {
