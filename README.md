@@ -1,5 +1,10 @@
 # climbx-cowork
 
+> [!IMPORTANT]
+> **Archived / superseded.** This local plugin has been replaced by the **`climbx` plugin in [iret77/mcp-hub](https://github.com/iret77/mcp-hub)**, which serves the same ClimbX workflow through a hosted connector — the ClimbX key lives on the server, so it works from **claude.ai, the mobile app, and the cloud** (not just a local machine) with **no key setup**. The local approach here could never reach those surfaces: ClimbX's remote MCP is gated by a static Bearer key that the claude.ai/mobile connector UI (OAuth-only) cannot supply. The hub fronts it with its own OAuth and holds the key server-side.
+>
+> This repo stays as a read-only reference. The underlying MCP server still lives at [iret77/climbx-mcp](https://github.com/iret77/climbx-mcp).
+
 > ClimbX spots what's blowing up in your niche; this project has Claude turn it into posts in your voice and schedule them, so you never open a web app for it again.
 
 A community-built companion for [ClimbX](https://climbx.so), the AI tool for growing an audience on X. ClimbX provides the engine: outlier detection across your niche, a voice profile learned from your own posts, evidence-backed do-more/do-less learnings, and posting through your connected account. This project brings that engine into Claude, where your own AI does the writing.
